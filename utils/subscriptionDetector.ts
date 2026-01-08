@@ -1,4 +1,5 @@
-import { parseISO, differenceInDays, format } from 'date-fns';
+import { parseISO, format } from 'date-fns';
+import differenceInDays from 'date-fns/differenceInDays';
 
 export interface Transaction {
   date: string;
