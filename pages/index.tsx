@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { parseCSVUniversal, parsePDFText, detectSubscriptions, calculateTotalAnnualCost, Subscription, Transaction } from '../utils/subscriptionDetector';
 import { findCancelLink } from '../utils/cancelLinks';
+import { extractTextFromPDF } from '../utils/pdfParser';
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
@@ -25,11 +26,17 @@ export default function Home() {
     try {
       let allTransactions: Transaction[] = [];
       for (const file of files) {
-        const text = await file.text();
-        const transactions = file.name.endsWith('.pdf') ? parsePDFText(text) : parseCSVUniversal(text);
+        let transactions: Transaction[] = [];
+        if (file.name.toLowerCase().endsWith('.pdf')) {
+          const text = await extractTextFromPDF(file);
+          transactions = parsePDFText(text);
+        } else {
+          const text = await file.text();
+          transactions = parseCSVUniversal(text);
+        }
         allTransactions = [...allTransactions, ...transactions];
       }
-      if (allTransactions.length === 0) throw new Error('No transactions found. Try a different file.');
+      if (allTransactions.length === 0) throw new Error('No transactions found. Try a different file or CSV format.');
       const detected = detectSubscriptions(allTransactions);
       setSubscriptions(detected);
       setTotalAnnualCost(calculateTotalAnnualCost(detected));
