@@ -6,7 +6,7 @@ export interface Transaction {
 
 function extractAmount(str: string): number {
   if (!str) return 0;
-  const cleaned = str.replace(/[$,\s-]/g, '').trim();
+  const cleaned = str.replace(/[$,]/g, '').trim();
   return Math.abs(parseFloat(cleaned)) || 0;
 }
 
@@ -49,77 +49,74 @@ export function parseCSVUniversal(csvText: string): Transaction[] {
 
 export function parsePDFText(text: string): Transaction[] {
   const transactions: Transaction[] = [];
-  const lines = text.split(/[\n\r]+/).map(l => l.trim()).filter(l => l.length > 0);
   
-  // Navy Federal format: "11-26 POS Debit- ... merchant ... 9.99- 5,415.23"
-  // The amount is followed by a minus sign for debits
-  // Pattern: Date at start, amount with optional minus, balance at end
+  // Clean up the text - PDF extraction often has weird spacing
+  const cleanText = text.replace(/\s+/g, ' ');
   
-  const navyFedPattern = /^(\d{1,2}-\d{1,2})\s+(.+?)\s+([\d,]+\.\d{2})-?\s+([\d,]+\.\d{2})$/;
-  const genericPattern = /(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\s+(.+?)\s+\$?([\d,]+\.\d{2})/;
+  // Look for patterns with dates and amounts
+  // Navy Federal format: "11-26 POS Debit- Debit Card 2582 11-25-25 DD *doordashdashpa Doordash.Com CA 9.99- 5,415.23"
   
-  for (const line of lines) {
-    // Skip header lines and non-transaction lines
-    const lowerLine = line.toLowerCase();
-    if (lowerLine.includes('beginning balance') || 
-        lowerLine.includes('ending balance') ||
-        lowerLine.includes('statement') ||
-        lowerLine.includes('page') ||
-        lowerLine.includes('account') ||
-        lowerLine.includes('total') ||
-        lowerLine.includes('credit union') ||
-        lowerLine.includes('routing') ||
-        lowerLine.includes('access no')) {
-      continue;
-    }
+  // Pattern 1: Match "MM-DD description amount- balance" (Navy Federal style)
+  const navyPattern = /(\d{1,2}-\d{1,2})\s+(.*?)\s+(\d{1,3}(?:,\d{3})*\.\d{2})-?\s+\d{1,3}(?:,\d{3})*\.\d{2}/g;
+  
+  let match;
+  while ((match = navyPattern.exec(cleanText)) !== null) {
+    const date = match[1];
+    let description = match[2];
+    const amount = extractAmount(match[3]);
     
-    // Try Navy Federal pattern first
-    let match = line.match(navyFedPattern);
-    if (match) {
-      const [, date, description, amountStr] = match;
-      const amount = extractAmount(amountStr);
-      
-      // Extract merchant name from description
-      let merchant = description;
-      // Clean up "POS Debit- Debit Card 2582 11-25-25" prefix
-      merchant = merchant.replace(/^POS\s*(Debit|Credit)?\s*-?\s*Debit Card\s*\d+\s*\d{1,2}-\d{1,2}-\d{2,4}\s*/i, '');
-      merchant = merchant.replace(/^POS\s*(Debit|Credit)?\s*-?\s*.*?Transaction\s*\d{1,2}-\d{1,2}-\d{2,4}\s*/i, '');
-      merchant = merchant.replace(/Debit Card \d+/i, '');
-      merchant = merchant.replace(/\d{3}-\d{3}-\d{4}/g, ''); // Remove phone numbers
-      merchant = merchant.replace(/\s+[A-Z]{2}$/, ''); // Remove state codes at end
-      merchant = merchant.trim();
-      
-      if (amount > 0 && amount < 5000 && merchant.length > 2) {
-        transactions.push({ date, merchant, amount });
-      }
-      continue;
-    }
+    // Skip non-transaction lines
+    const skipWords = ['beginning balance', 'ending balance', 'previous', 'total', 'statement', 'page', 'account', 'routing', 'credit union', 'member'];
+    const lowerDesc = description.toLowerCase();
+    if (skipWords.some(w => lowerDesc.includes(w))) continue;
     
-    // Try generic pattern
-    match = line.match(genericPattern);
-    if (match) {
-      const [, date, description, amountStr] = match;
-      const amount = extractAmount(amountStr);
-      let merchant = description.trim();
-      
-      if (amount > 0 && amount < 5000 && merchant.length > 2) {
-        transactions.push({ date, merchant, amount });
+    // Clean up the description to get merchant name
+    // Remove "POS Debit- Debit Card XXXX MM-DD-YY" prefix
+    description = description.replace(/POS\s*(Debit|Credit)?\s*-?\s*(Debit Card)?\s*\d*\s*\d{1,2}-\d{1,2}-\d{2,4}?\s*/gi, '');
+    description = description.replace(/Transaction\s*\d{1,2}-\d{1,2}-\d{2,4}?\s*/gi, '');
+    description = description.replace(/\d{3}-\d{3}-\d{4}/g, ''); // Remove phone numbers
+    description = description.replace(/\s+[A-Z]{2}$/i, ''); // Remove state codes
+    description = description.trim();
+    
+    if (amount > 0 && amount < 10000 && description.length > 2) {
+      transactions.push({ date, merchant: description, amount });
+    }
+  }
+  
+  // Pattern 2: Look for known subscription names with amounts
+  const knownSubs = ['netflix', 'spotify', 'apple', 'amazon', 'hulu', 'disney', 'youtube', 'hbo', 'doordash', 
+    'uber', 'lyft', 'playstation', 'xbox', 'nintendo', 'adobe', 'microsoft', 'google', 'prime', 
+    'grubhub', 'instacart', 'walmart', 'costco', 'gym', 'fitness', 'planet fitness',
+    'tradingview', 'chatgpt', 'openai', 'github', 'dropbox', 'icloud', 'tiktok', 'facebook', 'facebk'];
+  
+  for (const sub of knownSubs) {
+    const subPattern = new RegExp(`(${sub}[\\w\\s*#]*?)\\s+(\\d{1,3}(?:,\\d{3})*\\.\\d{2})`, 'gi');
+    let subMatch;
+    while ((subMatch = subPattern.exec(cleanText)) !== null) {
+      const merchant = subMatch[1].trim();
+      const amount = extractAmount(subMatch[2]);
+      if (amount > 0 && amount < 500 && merchant.length > 2) {
+        // Check if we already have this transaction
+        const exists = transactions.some(t => 
+          t.merchant.toLowerCase().includes(sub) && Math.abs(t.amount - amount) < 0.01
+        );
+        if (!exists) {
+          transactions.push({ date: '', merchant, amount });
+        }
       }
     }
   }
   
-  // Also look for simpler format like "12-11 POS 18.49"
-  const simplePattern = /^(\d{1,2}-\d{1,2})\s+POS\s+([\d,]+\.\d{2})$/;
-  for (const line of lines) {
-    const match = line.match(simplePattern);
-    if (match) {
-      const [, date, amountStr] = match;
-      const amount = extractAmount(amountStr);
-      if (amount > 0 && amount < 5000) {
-        transactions.push({ date, merchant: 'POS Transaction', amount });
-      }
+  // Pattern 3: Simple "date amount" pairs for Items Paid section
+  const itemsPattern = /(\d{1,2}-\d{1,2})\s+POS\s+(\d{1,3}(?:,\d{3})*\.\d{2})/g;
+  while ((match = itemsPattern.exec(cleanText)) !== null) {
+    const date = match[1];
+    const amount = extractAmount(match[2]);
+    if (amount > 0 && amount < 1000) {
+      transactions.push({ date, merchant: 'POS Purchase', amount });
     }
   }
   
+  console.log('Found transactions:', transactions.length);
   return transactions;
 }
