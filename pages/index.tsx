@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { parseCSVUniversal, detectSubscriptions, calculateTotalAnnualCost, Subscription, Transaction } from '../utils/subscriptionDetector';
+import { parseCSVUniversal, parsePDFText, detectSubscriptions, calculateTotalAnnualCost, Subscription, Transaction } from '../utils/subscriptionDetector';
 import { findCancelLink } from '../utils/cancelLinks';
+import { extractTextFromPDF } from '../utils/pdfParser';
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
@@ -13,13 +14,7 @@ export default function Home() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const uploadedFiles = Array.from(e.target.files);
-      const pdfFiles = uploadedFiles.filter(f => f.name.toLowerCase().endsWith('.pdf'));
-      if (pdfFiles.length > 0) {
-        setError('PDF support coming soon! Please export your statement as CSV from your bank website.');
-        return;
-      }
-      setFiles(uploadedFiles);
+      setFiles(Array.from(e.target.files));
       setError('');
     }
   };
@@ -31,17 +26,26 @@ export default function Home() {
     try {
       let allTransactions: Transaction[] = [];
       for (const file of files) {
-        const text = await file.text();
-        const transactions = parseCSVUniversal(text);
+        let transactions: Transaction[] = [];
+        if (file.name.toLowerCase().endsWith('.pdf')) {
+          const text = await extractTextFromPDF(file);
+          console.log('Extracted PDF text:', text.substring(0, 1000));
+          transactions = parsePDFText(text);
+          console.log('Parsed transactions:', transactions.length);
+        } else {
+          const text = await file.text();
+          transactions = parseCSVUniversal(text);
+        }
         allTransactions = [...allTransactions, ...transactions];
       }
-      if (allTransactions.length === 0) throw new Error('No transactions found. Make sure your CSV has date, description, and amount columns.');
+      if (allTransactions.length === 0) throw new Error('No transactions found. Try a different file format.');
       const detected = detectSubscriptions(allTransactions);
-      if (detected.length === 0) throw new Error('No recurring subscriptions detected. Try uploading more months of data.');
+      if (detected.length === 0) throw new Error('No recurring subscriptions detected.');
       setSubscriptions(detected);
       setTotalAnnualCost(calculateTotalAnnualCost(detected));
       setShowResults(true);
     } catch (err: any) {
+      console.error('Error:', err);
       setError(err.message || 'Error analyzing file');
     } finally {
       setLoading(false);
@@ -61,15 +65,12 @@ export default function Home() {
         {!showResults ? (
           <div style={styles.uploadSection}>
             <div style={styles.uploadBox}>
-              <input type="file" accept=".csv" multiple onChange={handleFileUpload} style={styles.fileInput} id="file-upload" />
+              <input type="file" accept=".csv,.pdf" multiple onChange={handleFileUpload} style={styles.fileInput} id="file-upload" />
               <label htmlFor="file-upload" style={styles.uploadLabel}>
                 <div style={styles.uploadIcon}>📄</div>
                 <div style={styles.uploadText}>{files.length === 0 ? 'Upload your bank statement' : files.length + ' file(s) ready'}</div>
-                <div style={styles.uploadHint}>CSV format from any bank</div>
+                <div style={styles.uploadHint}>CSV or PDF from any bank</div>
               </label>
-            </div>
-            <div style={styles.helpText}>
-              <strong>How to get your CSV:</strong> Log into your bank → Transactions → Export/Download → Choose CSV
             </div>
             {error && <div style={styles.error}>{error}</div>}
             {files.length > 0 && <div style={styles.fileList}>{files.map((f, i) => <div key={i} style={styles.fileItem}>📄 {f.name}</div>)}</div>}
@@ -139,7 +140,6 @@ const styles: { [key: string]: React.CSSProperties } = {
   uploadIcon: { fontSize: '48px', marginBottom: '16px' },
   uploadText: { fontSize: '18px', fontWeight: '500', marginBottom: '8px' },
   uploadHint: { fontSize: '14px', color: '#666' },
-  helpText: { fontSize: '13px', color: '#666', textAlign: 'center', lineHeight: '1.5' },
   error: { background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#ff6b6b', padding: '12px 16px', borderRadius: '8px' },
   fileList: { display: 'flex', flexDirection: 'column', gap: '8px' },
   fileItem: { background: '#1a1a1a', padding: '12px 16px', borderRadius: '8px', color: '#ccc' },
