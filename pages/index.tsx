@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { parseCSV, detectSubscriptions, calculateTotalAnnualCost, Subscription } from '../utils/subscriptionDetector';
+import { parseCSVUniversal, parsePDFText, detectSubscriptions, calculateTotalAnnualCost, Subscription, Transaction } from '../utils/subscriptionDetector';
 import { findCancelLink } from '../utils/cancelLinks';
 
 export default function Home() {
@@ -13,236 +13,102 @@ export default function Home() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const uploadedFiles = Array.from(e.target.files);
-      setFiles(uploadedFiles);
+      setFiles(Array.from(e.target.files));
       setError('');
     }
   };
 
   const analyzeSubscriptions = async () => {
-    if (files.length === 0) {
-      setError('Please upload at least one CSV file');
-      return;
-    }
-
+    if (files.length === 0) { setError('Please upload a file'); return; }
     setLoading(true);
     setError('');
-
     try {
-      let allTransactions: any[] = [];
-
-      // Parse all uploaded CSV files
+      let allTransactions: Transaction[] = [];
       for (const file of files) {
         const text = await file.text();
-        const transactions = parseCSV(text);
+        const transactions = file.name.endsWith('.pdf') ? parsePDFText(text) : parseCSVUniversal(text);
         allTransactions = [...allTransactions, ...transactions];
       }
-
-      if (allTransactions.length === 0) {
-        throw new Error('No valid transactions found in uploaded files');
-      }
-
-      // Detect subscriptions
+      if (allTransactions.length === 0) throw new Error('No transactions found. Try a different file.');
       const detected = detectSubscriptions(allTransactions);
-      const total = calculateTotalAnnualCost(detected);
-
       setSubscriptions(detected);
-      setTotalAnnualCost(total);
+      setTotalAnnualCost(calculateTotalAnnualCost(detected));
       setShowResults(true);
     } catch (err: any) {
-      setError(err.message || 'Error analyzing files. Please check CSV format.');
+      setError(err.message || 'Error analyzing file');
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePayment = () => {
-    // In production, this would integrate with Stripe
-    // For now, we'll simulate payment
-    setHasPaid(true);
-  };
+  const reset = () => { setShowResults(false); setHasPaid(false); setFiles([]); setSubscriptions([]); };
 
   return (
     <div style={styles.container}>
       <div style={styles.content}>
-        <h1 style={styles.title}>💳 Subscription Tracker</h1>
-        <p style={styles.subtitle}>
-          Upload 3 months of credit card statements and discover how much you're really spending on subscriptions
-        </p>
+        <div style={styles.header}>
+          <h1 style={styles.logo}>stopmysub</h1>
+          <p style={styles.tagline}>Find hidden subscriptions. Cancel instantly.</p>
+        </div>
 
-        {!showResults && (
+        {!showResults ? (
           <div style={styles.uploadSection}>
             <div style={styles.uploadBox}>
-              <input
-                type="file"
-                accept=".csv"
-                multiple
-                onChange={handleFileUpload}
-                style={styles.fileInput}
-                id="file-upload"
-              />
+              <input type="file" accept=".csv,.pdf" multiple onChange={handleFileUpload} style={styles.fileInput} id="file-upload" />
               <label htmlFor="file-upload" style={styles.uploadLabel}>
-                <div style={styles.uploadIcon}>📁</div>
-                <div>
-                  {files.length === 0 
-                    ? 'Click to upload CSV files' 
-                    : `${files.length} file(s) selected`}
-                </div>
-                <div style={styles.uploadHint}>
-                  Upload your credit card CSV exports (last 3 months recommended)
-                </div>
+                <div style={styles.uploadIcon}>📄</div>
+                <div style={styles.uploadText}>{files.length === 0 ? 'Drop your bank statement here' : files.length + ' file(s) ready'}</div>
+                <div style={styles.uploadHint}>CSV or PDF from any bank</div>
               </label>
             </div>
-
-            {error && (
-              <div style={styles.error}>
-                ⚠️ {error}
-              </div>
-            )}
-
-            {files.length > 0 && (
-              <div style={styles.fileList}>
-                <strong>Selected files:</strong>
-                <ul>
-                  {files.map((file, idx) => (
-                    <li key={idx}>{file.name}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <button
-              onClick={analyzeSubscriptions}
-              disabled={loading || files.length === 0}
-              style={{
-                ...styles.button,
-                ...(loading || files.length === 0 ? styles.buttonDisabled : {})
-              }}
-            >
-              {loading ? 'Analyzing...' : 'Analyze My Subscriptions'}
+            {error && <div style={styles.error}>{error}</div>}
+            {files.length > 0 && <div style={styles.fileList}>{files.map((f, i) => <div key={i} style={styles.fileItem}>📄 {f.name}</div>)}</div>}
+            <button onClick={analyzeSubscriptions} disabled={loading || files.length === 0} style={{...styles.button, ...(loading || files.length === 0 ? styles.buttonDisabled : {})}}>
+              {loading ? 'Analyzing...' : 'Find My Subscriptions'}
             </button>
-
-            <div style={styles.privacy}>
-              🔒 Your data is processed locally and never stored on our servers
-            </div>
+            <div style={styles.trust}>🔒 Processed locally. We never see your data.</div>
           </div>
-        )}
-
-        {showResults && !hasPaid && (
-          <div style={styles.resultsPreview}>
-            <div style={styles.totalCost}>
-              <h2>Your Annual Subscription Cost</h2>
-              <div style={styles.bigNumber}>
-                ${totalAnnualCost.toFixed(2)}
-              </div>
-              <p style={styles.perMonth}>
-                (${(totalAnnualCost / 12).toFixed(2)}/month)
-              </p>
+        ) : !hasPaid ? (
+          <div style={styles.resultsSection}>
+            <div style={styles.costCard}>
+              <div style={styles.costLabel}>You are spending</div>
+              <div style={styles.costAmount}>${totalAnnualCost.toFixed(0)}</div>
+              <div style={styles.costPeriod}>per year on subscriptions</div>
             </div>
-
-            <div style={styles.subsFound}>
-              <strong>{subscriptions.length} subscriptions detected</strong>
+            <div style={styles.subsCount}>{subscriptions.length} subscriptions found</div>
+            <div style={styles.previewList}>
+              {subscriptions.slice(0, 3).map((sub, i) => <div key={i} style={styles.previewItem}><span>{sub.merchant}</span><span>${sub.amount.toFixed(2)}/mo</span></div>)}
+              {subscriptions.length > 3 && <div style={styles.moreItems}>+{subscriptions.length - 3} more...</div>}
             </div>
-
-            <div style={styles.blurredPreview}>
-              {subscriptions.slice(0, 3).map((sub, idx) => (
-                <div key={idx} style={styles.subPreviewItem}>
-                  <div style={styles.subName}>{sub.merchant}</div>
-                  <div style={styles.subAmount}>
-                    ${sub.amount.toFixed(2)}/{sub.frequency === 'monthly' ? 'mo' : sub.frequency === 'quarterly' ? 'qtr' : 'yr'}
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div style={styles.unlockMessage}>
-              <h3>🔓 Unlock Full Report</h3>
-              <p>Get instant cancel links for all {subscriptions.length} subscriptions</p>
-              <button onClick={handlePayment} style={styles.payButton}>
-                Pay $5 to View Full Report
-              </button>
-            </div>
+            <button onClick={() => setHasPaid(true)} style={styles.payButton}>Unlock All + Cancel Links — $5</button>
+            <div style={styles.guarantee}>💰 Find $100+ in savings or money back</div>
           </div>
-        )}
-
-        {showResults && hasPaid && (
-          <div style={styles.fullResults}>
-            <div style={styles.totalCost}>
-              <h2>Your Annual Subscription Cost</h2>
-              <div style={styles.bigNumber}>
-                ${totalAnnualCost.toFixed(2)}
-              </div>
-              <p style={styles.perMonth}>
-                (${(totalAnnualCost / 12).toFixed(2)}/month)
-              </p>
+        ) : (
+          <div style={styles.resultsSection}>
+            <div style={styles.costCard}>
+              <div style={styles.costLabel}>Total Annual Cost</div>
+              <div style={styles.costAmount}>${totalAnnualCost.toFixed(0)}</div>
+              <div style={styles.costPeriod}>${(totalAnnualCost / 12).toFixed(2)}/month</div>
             </div>
-
-            <div style={styles.subscriptionList}>
-              <h3>All Your Subscriptions ({subscriptions.length})</h3>
-              
-              {subscriptions.map((sub, idx) => {
+            <div style={styles.subsList}>
+              {subscriptions.map((sub, i) => {
                 const cancelLink = findCancelLink(sub.merchant);
-                
                 return (
-                  <div key={idx} style={styles.subscriptionCard}>
-                    <div style={styles.subHeader}>
-                      <div>
-                        <div style={styles.subMerchant}>{sub.merchant}</div>
-                        <div style={styles.subFrequency}>
-                          {sub.frequency} • {sub.transactions.length} charges detected
-                        </div>
-                      </div>
-                      <div style={styles.subCost}>
-                        <div style={styles.subMonthly}>
-                          ${sub.amount.toFixed(2)}/{sub.frequency === 'monthly' ? 'mo' : sub.frequency === 'quarterly' ? 'qtr' : 'yr'}
-                        </div>
-                        <div style={styles.subAnnual}>
-                          ${sub.annualCost.toFixed(2)}/year
-                        </div>
-                      </div>
+                  <div key={i} style={styles.subCard}>
+                    <div style={styles.subInfo}>
+                      <div style={styles.subName}>{sub.merchant}</div>
+                      <div style={styles.subDetails}>${sub.amount.toFixed(2)}/mo · ${sub.annualCost.toFixed(0)}/yr</div>
                     </div>
-
                     {cancelLink ? (
-                      <div style={styles.cancelSection}>
-                        <a 
-                          href={cancelLink.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          style={styles.cancelButton}
-                        >
-                          ✂️ Cancel This Subscription
-                        </a>
-                        {cancelLink.instructions && (
-                          <div style={styles.instructions}>
-                            💡 {cancelLink.instructions}
-                          </div>
-                        )}
-                      </div>
+                      <a href={cancelLink.url} target="_blank" rel="noopener noreferrer" style={styles.cancelBtn}>Cancel</a>
                     ) : (
-                      <div style={styles.noCancelLink}>
-                        ℹ️ Search "{sub.merchant} cancel subscription" to find cancellation page
-                      </div>
+                      <a href={'https://google.com/search?q=cancel+' + encodeURIComponent(sub.merchant)} target="_blank" rel="noopener noreferrer" style={styles.cancelBtnAlt}>How to cancel</a>
                     )}
-
-                    <div style={styles.confidence}>
-                      Confidence: {(sub.confidence * 100).toFixed(0)}%
-                    </div>
                   </div>
                 );
               })}
             </div>
-
-            <button 
-              onClick={() => {
-                setShowResults(false);
-                setHasPaid(false);
-                setFiles([]);
-                setSubscriptions([]);
-              }}
-              style={styles.resetButton}
-            >
-              Analyze Another Account
-            </button>
+            <button onClick={reset} style={styles.resetBtn}>Analyze Another Statement</button>
           </div>
         )}
       </div>
@@ -251,243 +117,41 @@ export default function Home() {
 }
 
 const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    padding: '20px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  },
-  content: {
-    maxWidth: '800px',
-    margin: '0 auto',
-    padding: '40px 20px'
-  },
-  title: {
-    fontSize: '48px',
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: '10px'
-  },
-  subtitle: {
-    fontSize: '18px',
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center',
-    marginBottom: '40px'
-  },
-  uploadSection: {
-    background: 'white',
-    borderRadius: '16px',
-    padding: '40px',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
-  },
-  uploadBox: {
-    border: '3px dashed #667eea',
-    borderRadius: '12px',
-    padding: '40px',
-    textAlign: 'center',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    marginBottom: '20px'
-  },
-  fileInput: {
-    display: 'none'
-  },
-  uploadLabel: {
-    cursor: 'pointer',
-    display: 'block'
-  },
-  uploadIcon: {
-    fontSize: '48px',
-    marginBottom: '10px'
-  },
-  uploadHint: {
-    fontSize: '14px',
-    color: '#666',
-    marginTop: '8px'
-  },
-  fileList: {
-    background: '#f5f5f5',
-    padding: '15px',
-    borderRadius: '8px',
-    marginBottom: '20px'
-  },
-  button: {
-    width: '100%',
-    padding: '16px',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '18px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'transform 0.2s ease'
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-    cursor: 'not-allowed'
-  },
-  privacy: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: '14px',
-    marginTop: '20px'
-  },
-  error: {
-    background: '#fee',
-    color: '#c33',
-    padding: '12px',
-    borderRadius: '8px',
-    marginBottom: '20px'
-  },
-  resultsPreview: {
-    background: 'white',
-    borderRadius: '16px',
-    padding: '40px',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
-  },
-  totalCost: {
-    textAlign: 'center',
-    marginBottom: '30px'
-  },
-  bigNumber: {
-    fontSize: '64px',
-    fontWeight: 'bold',
-    color: '#667eea',
-    margin: '20px 0'
-  },
-  perMonth: {
-    fontSize: '18px',
-    color: '#666'
-  },
-  subsFound: {
-    textAlign: 'center',
-    fontSize: '18px',
-    marginBottom: '30px',
-    color: '#333'
-  },
-  blurredPreview: {
-    filter: 'blur(5px)',
-    marginBottom: '20px',
-    pointerEvents: 'none'
-  },
-  subPreviewItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '15px',
-    background: '#f9f9f9',
-    borderRadius: '8px',
-    marginBottom: '10px'
-  },
-  subName: {
-    fontWeight: '600'
-  },
-  subAmount: {
-    color: '#667eea'
-  },
-  unlockMessage: {
-    textAlign: 'center',
-    padding: '30px 20px',
-    background: 'white',
-    borderRadius: '12px'
-  },
-  payButton: {
-    padding: '16px 32px',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '18px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    marginTop: '20px'
-  },
-  fullResults: {
-    background: 'white',
-    borderRadius: '16px',
-    padding: '40px',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
-  },
-  subscriptionList: {
-    marginTop: '40px'
-  },
-  subscriptionCard: {
-    background: '#f9f9f9',
-    padding: '20px',
-    borderRadius: '12px',
-    marginBottom: '20px',
-    border: '2px solid #eee'
-  },
-  subHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'start',
-    marginBottom: '15px'
-  },
-  subMerchant: {
-    fontSize: '20px',
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: '5px'
-  },
-  subFrequency: {
-    fontSize: '14px',
-    color: '#666'
-  },
-  subCost: {
-    textAlign: 'right'
-  },
-  subMonthly: {
-    fontSize: '18px',
-    fontWeight: 'bold',
-    color: '#667eea'
-  },
-  subAnnual: {
-    fontSize: '14px',
-    color: '#666'
-  },
-  cancelSection: {
-    marginTop: '15px'
-  },
-  cancelButton: {
-    display: 'inline-block',
-    padding: '12px 24px',
-    background: '#ff4757',
-    color: 'white',
-    textDecoration: 'none',
-    borderRadius: '8px',
-    fontWeight: 'bold',
-    transition: 'all 0.3s ease'
-  },
-  instructions: {
-    marginTop: '10px',
-    fontSize: '14px',
-    color: '#666',
-    fontStyle: 'italic'
-  },
-  noCancelLink: {
-    padding: '12px',
-    background: '#fff3cd',
-    borderRadius: '8px',
-    fontSize: '14px',
-    color: '#856404'
-  },
-  confidence: {
-    marginTop: '10px',
-    fontSize: '12px',
-    color: '#999'
-  },
-  resetButton: {
-    width: '100%',
-    padding: '14px',
-    background: '#f1f1f1',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    marginTop: '30px',
-    color: '#333'
-  }
+  container: { minHeight: '100vh', background: '#0a0a0a', color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
+  content: { maxWidth: '480px', margin: '0 auto', padding: '60px 20px' },
+  header: { textAlign: 'center', marginBottom: '48px' },
+  logo: { fontSize: '32px', fontWeight: '700', margin: 0, background: 'linear-gradient(135deg, #00ff88, #00d4ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
+  tagline: { fontSize: '16px', color: '#888', marginTop: '8px' },
+  uploadSection: { display: 'flex', flexDirection: 'column', gap: '20px' },
+  uploadBox: { border: '2px dashed #333', borderRadius: '16px', padding: '48px 24px', textAlign: 'center', cursor: 'pointer', background: '#111' },
+  fileInput: { display: 'none' },
+  uploadLabel: { cursor: 'pointer', display: 'block' },
+  uploadIcon: { fontSize: '48px', marginBottom: '16px' },
+  uploadText: { fontSize: '18px', fontWeight: '500', marginBottom: '8px' },
+  uploadHint: { fontSize: '14px', color: '#666' },
+  error: { background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#ff6b6b', padding: '12px 16px', borderRadius: '8px' },
+  fileList: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  fileItem: { background: '#1a1a1a', padding: '12px 16px', borderRadius: '8px', color: '#ccc' },
+  button: { width: '100%', padding: '16px', background: 'linear-gradient(135deg, #00ff88, #00d4ff)', color: '#000', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' },
+  buttonDisabled: { opacity: 0.5, cursor: 'not-allowed' },
+  trust: { textAlign: 'center', fontSize: '13px', color: '#666' },
+  resultsSection: { display: 'flex', flexDirection: 'column', gap: '24px' },
+  costCard: { background: 'linear-gradient(135deg, #1a1a2e, #16213e)', borderRadius: '20px', padding: '32px', textAlign: 'center' },
+  costLabel: { fontSize: '14px', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' },
+  costAmount: { fontSize: '64px', fontWeight: '700', background: 'linear-gradient(135deg, #00ff88, #00d4ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: '8px 0' },
+  costPeriod: { fontSize: '16px', color: '#666' },
+  subsCount: { textAlign: 'center', fontSize: '18px', fontWeight: '500' },
+  previewList: { background: '#111', borderRadius: '12px', overflow: 'hidden', filter: 'blur(4px)' },
+  previewItem: { display: 'flex', justifyContent: 'space-between', padding: '16px', borderBottom: '1px solid #222' },
+  moreItems: { padding: '16px', textAlign: 'center', color: '#666' },
+  payButton: { width: '100%', padding: '18px', background: '#fff', color: '#000', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' },
+  guarantee: { textAlign: 'center', fontSize: '14px', color: '#666' },
+  subsList: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  subCard: { background: '#111', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  subInfo: { flex: 1 },
+  subName: { fontSize: '16px', fontWeight: '500', marginBottom: '4px' },
+  subDetails: { fontSize: '14px', color: '#888' },
+  cancelBtn: { padding: '8px 16px', background: '#ff4444', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' },
+  cancelBtnAlt: { padding: '8px 16px', background: '#333', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '14px' },
+  resetBtn: { width: '100%', padding: '14px', background: 'transparent', border: '1px solid #333', color: '#888', borderRadius: '12px', cursor: 'pointer' },
 };
