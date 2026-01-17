@@ -2,835 +2,456 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StopMySub - Track & Cancel Subscriptions</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StopMySub - Subscription Tracker</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8f9fb;
-            --bg-tertiary: #f1f3f6;
-            --bg-card: #ffffff;
-            --bg-card-hover: #f8f9fb;
-            --text-primary: #0f1419;
-            --text-secondary: #536471;
-            --text-muted: #8b98a5;
-            --accent: #0066ff;
-            --accent-light: #e6f0ff;
-            --accent-glow: rgba(0, 102, 255, 0.15);
-            --danger: #e5484d;
-            --danger-light: #ffefef;
-            --success: #30a46c;
-            --success-light: #e9f9ef;
-            --warning: #f5a623;
-            --warning-light: #fff8eb;
-            --border: #e6e9ed;
-            --border-light: #f1f3f6;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
-            --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
-        }
-        body {
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            min-height: 100vh;
+        html, body, #root { height: 100%; }
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: #f8f9fa; 
+            color: #1a1a2e;
             -webkit-font-smoothing: antialiased;
-            font-size: 17px;
-            line-height: 1.6;
         }
-        #root { min-height: 100vh; }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-        .mono { font-family: 'Geist Mono', monospace; }
-        
-        /* Mobile responsive styles */
-        @media (max-width: 768px) {
-            .desktop-nav-links { display: none !important; }
-            .nav-container { padding: 16px 20px !important; }
-            .hero-container { padding: 60px 24px 80px !important; }
-            .hero-title { font-size: 36px !important; }
-            .hero-subtitle { font-size: 16px !important; }
-            .feature-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-            .feature-grid-2col { grid-template-columns: 1fr !important; }
-            .cta-buttons { flex-direction: column !important; }
-            .cta-buttons button { width: 100% !important; }
-            .stats-container { flex-direction: column !important; gap: 20px !important; }
-            .calendar-grid { font-size: 12px !important; }
-            .calendar-day { min-height: 80px !important; padding: 8px !important; }
-            .sub-list-item { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
-            .section-padding { padding: 60px 24px !important; }
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --danger-border: #fecaca;
+            --success: #22c55e;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #1a1a2e;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
         }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo } = React;
+        const { useState, useMemo } = React;
         
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        
-        const KNOWN_SUBSCRIPTIONS = {
-            'netflix': { name: 'Netflix', category: 'Entertainment', icon: '🎬', cancelUrl: 'https://www.netflix.com/cancelplan' },
-            'spotify': { name: 'Spotify', category: 'Music', icon: '🎵', cancelUrl: 'https://www.spotify.com/account/subscription/' },
-            'amazon prime': { name: 'Amazon Prime', category: 'Shopping', icon: '📦', cancelUrl: 'https://www.amazon.com/gp/primecentral' },
-            'disney': { name: 'Disney+', category: 'Entertainment', icon: '🏰', cancelUrl: 'https://www.disneyplus.com/account/subscription' },
-            'hulu': { name: 'Hulu', category: 'Entertainment', icon: '📺', cancelUrl: 'https://secure.hulu.com/account' },
-            'hbo': { name: 'HBO Max', category: 'Entertainment', icon: '🎭', cancelUrl: 'https://www.max.com/account' },
-            'apple music': { name: 'Apple Music', category: 'Music', icon: '🍎', cancelUrl: 'https://support.apple.com/en-us/HT202039' },
-            'icloud': { name: 'iCloud', category: 'Storage', icon: '☁️', cancelUrl: 'https://support.apple.com/en-us/HT207594' },
-            'google one': { name: 'Google One', category: 'Storage', icon: '🔵', cancelUrl: 'https://one.google.com/settings' },
-            'youtube': { name: 'YouTube Premium', category: 'Entertainment', icon: '▶️', cancelUrl: 'https://www.youtube.com/paid_memberships' },
-            'dropbox': { name: 'Dropbox', category: 'Storage', icon: '📁', cancelUrl: 'https://www.dropbox.com/account/plan' },
-            'adobe': { name: 'Adobe Creative Cloud', category: 'Software', icon: '🎨', cancelUrl: 'https://account.adobe.com/plans' },
-            'microsoft 365': { name: 'Microsoft 365', category: 'Software', icon: '📊', cancelUrl: 'https://account.microsoft.com/services' },
-            'chatgpt': { name: 'ChatGPT Plus', category: 'AI', icon: '🤖', cancelUrl: 'https://chat.openai.com/settings/subscription' },
-            'openai': { name: 'OpenAI', category: 'AI', icon: '🤖', cancelUrl: 'https://platform.openai.com/account/billing' },
-            'claude': { name: 'Claude Pro', category: 'AI', icon: '🧠', cancelUrl: 'https://claude.ai/settings' },
-            'gym': { name: 'Gym Membership', category: 'Fitness', icon: '💪', cancelUrl: null },
-            'planet fitness': { name: 'Planet Fitness', category: 'Fitness', icon: '💪', cancelUrl: 'https://www.planetfitness.com/my-account' },
-            'peloton': { name: 'Peloton', category: 'Fitness', icon: '🚴', cancelUrl: 'https://members.onepeloton.com/preferences/subscriptions' },
-            'headspace': { name: 'Headspace', category: 'Wellness', icon: '🧘', cancelUrl: 'https://www.headspace.com/settings/subscription' },
-            'linkedin': { name: 'LinkedIn Premium', category: 'Professional', icon: '💼', cancelUrl: 'https://www.linkedin.com/psettings/manage-subscription' },
-            'nordvpn': { name: 'NordVPN', category: 'Security', icon: '🔒', cancelUrl: 'https://my.nordaccount.com/dashboard/nordvpn/' },
-            '1password': { name: '1Password', category: 'Security', icon: '🔑', cancelUrl: 'https://my.1password.com/profile' },
-            'notion': { name: 'Notion', category: 'Productivity', icon: '📝', cancelUrl: 'https://www.notion.so/my-account' },
-            'canva': { name: 'Canva Pro', category: 'Design', icon: '🎨', cancelUrl: 'https://www.canva.com/settings/billing-and-plans' },
-            'grammarly': { name: 'Grammarly', category: 'Writing', icon: '✍️', cancelUrl: 'https://account.grammarly.com/subscription' },
-            'paramount': { name: 'Paramount+', category: 'Entertainment', icon: '⭐', cancelUrl: 'https://www.paramountplus.com/account/' },
-            'peacock': { name: 'Peacock', category: 'Entertainment', icon: '🦚', cancelUrl: 'https://www.peacocktv.com/account/plan' },
-            'crunchyroll': { name: 'Crunchyroll', category: 'Entertainment', icon: '🍥', cancelUrl: 'https://www.crunchyroll.com/account/subscription' },
-            'audible': { name: 'Audible', category: 'Books', icon: '🎧', cancelUrl: 'https://www.audible.com/account/overview' },
-            'doordash': { name: 'DashPass', category: 'Food', icon: '🍔', cancelUrl: 'https://www.doordash.com/consumer/membership/' },
-            'uber eats': { name: 'Uber One', category: 'Food', icon: '🚗', cancelUrl: 'https://www.ubereats.com/membership' },
-            'xbox': { name: 'Xbox Game Pass', category: 'Gaming', icon: '🎮', cancelUrl: 'https://account.microsoft.com/services/xboxgamepass/cancel' },
-            'playstation': { name: 'PlayStation Plus', category: 'Gaming', icon: '🎮', cancelUrl: 'https://www.playstation.com/en-us/support/store/cancel-ps-store-subscription/' },
+        // Cancel links database
+        const cancelLinks = {
+            'netflix': 'https://www.netflix.com/cancelplan',
+            'spotify': 'https://www.spotify.com/account/subscription/',
+            'hulu': 'https://secure.hulu.com/account',
+            'disney': 'https://www.disneyplus.com/account/subscription',
+            'disney+': 'https://www.disneyplus.com/account/subscription',
+            'amazon prime': 'https://www.amazon.com/mc/pipelines/cancelPrime',
+            'amazon': 'https://www.amazon.com/mc/pipelines/cancelPrime',
+            'apple': 'https://support.apple.com/en-us/HT202039',
+            'apple music': 'https://support.apple.com/en-us/HT202039',
+            'icloud': 'https://support.apple.com/en-us/HT207594',
+            'youtube': 'https://www.youtube.com/paid_memberships',
+            'youtube premium': 'https://www.youtube.com/paid_memberships',
+            'hbo': 'https://www.max.com/account/subscription',
+            'max': 'https://www.max.com/account/subscription',
+            'paramount': 'https://www.paramountplus.com/account/',
+            'peacock': 'https://www.peacocktv.com/account/subscription',
+            'adobe': 'https://account.adobe.com/plans',
+            'microsoft': 'https://account.microsoft.com/services/',
+            'dropbox': 'https://www.dropbox.com/account/plan',
+            'chatgpt': 'https://chat.openai.com/#settings/subscription',
+            'openai': 'https://chat.openai.com/#settings/subscription',
+            'gym': null,
+            'fitness': null,
         };
         
-        const detectSubscriptions = (text) => {
-            const detectedSubs = [];
-            const lowerText = text.toLowerCase();
-            const lines = text.split('\n');
-            const pricePattern = /\$?\d{1,4}\.?\d{0,2}/g;
-            
-            for (const [keyword, subInfo] of Object.entries(KNOWN_SUBSCRIPTIONS)) {
-                if (lowerText.includes(keyword)) {
-                    let price = null;
-                    for (const line of lines) {
-                        if (line.toLowerCase().includes(keyword)) {
-                            const prices = line.match(pricePattern);
-                            if (prices) {
-                                const numPrice = parseFloat(prices[0].replace('$', ''));
-                                if (numPrice > 0 && numPrice < 500) { price = numPrice; break; }
-                            }
-                        }
-                    }
-                    if (!detectedSubs.find(s => s.name === subInfo.name)) {
-                        detectedSubs.push({
-                            ...subInfo,
-                            price: price || Math.floor(Math.random() * 15) + 5,
-                            billingDay: Math.floor(Math.random() * 28) + 1,
-                            confirmed: true,
-                            id: crypto.randomUUID()
-                        });
-                    }
-                }
+        const getCancelLink = (name) => {
+            const lower = name.toLowerCase();
+            for (const [key, url] of Object.entries(cancelLinks)) {
+                if (lower.includes(key)) return url;
             }
-            return detectedSubs;
+            return null;
         };
         
-        // Badge component
-        const Badge = ({ children, variant = 'default' }) => {
-            const variants = {
-                default: { background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' },
-                success: { background: 'var(--success-light)', color: 'var(--success)' },
-                warning: { background: 'var(--warning-light)', color: 'var(--warning)' },
-                danger: { background: 'var(--danger-light)', color: 'var(--danger)' },
-                accent: { background: 'var(--accent-light)', color: 'var(--accent)' }
-            };
-            return (
-                <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '6px',
-                    padding: '6px 14px', borderRadius: '8px', fontSize: '14px', fontWeight: 500,
-                    ...variants[variant]
-                }}>{children}</span>
-            );
+        const getIcon = (name) => {
+            const lower = name.toLowerCase();
+            if (lower.includes('netflix')) return '🎬';
+            if (lower.includes('spotify')) return '🎵';
+            if (lower.includes('disney')) return '🏰';
+            if (lower.includes('hulu')) return '📺';
+            if (lower.includes('amazon') || lower.includes('prime')) return '📦';
+            if (lower.includes('apple') || lower.includes('icloud')) return '☁️';
+            if (lower.includes('youtube')) return '▶️';
+            if (lower.includes('hbo') || lower.includes('max')) return '🎭';
+            if (lower.includes('gym') || lower.includes('fitness')) return '💪';
+            if (lower.includes('adobe')) return '🎨';
+            if (lower.includes('microsoft') || lower.includes('office')) return '💼';
+            if (lower.includes('dropbox')) return '📁';
+            if (lower.includes('chatgpt') || lower.includes('openai')) return '🤖';
+            return '📄';
         };
         
-        // Button component
-        const Button = ({ children, variant = 'primary', size = 'md', onClick, disabled, style = {} }) => {
-            const variants = {
-                primary: { background: 'var(--accent)', color: '#fff', border: 'none' },
-                secondary: { background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' },
-                danger: { background: 'var(--danger)', color: '#fff', border: 'none' },
-                ghost: { background: 'transparent', color: 'var(--text-secondary)', border: 'none' }
-            };
-            const sizes = {
-                sm: { padding: '10px 18px', fontSize: '14px' },
-                md: { padding: '14px 24px', fontSize: '16px' },
-                lg: { padding: '18px 32px', fontSize: '17px' }
-            };
-            return (
-                <button onClick={onClick} disabled={disabled} style={{
-                    ...variants[variant], ...sizes[size],
-                    borderRadius: '10px', fontWeight: 500, cursor: disabled ? 'not-allowed' : 'pointer',
-                    opacity: disabled ? 0.5 : 1, transition: 'all 0.2s ease',
-                    fontFamily: 'inherit', ...style
-                }}>{children}</button>
-            );
+        const getCategory = (name) => {
+            const lower = name.toLowerCase();
+            if (['netflix', 'hulu', 'disney', 'hbo', 'max', 'paramount', 'peacock'].some(s => lower.includes(s))) return 'Entertainment';
+            if (['spotify', 'apple music', 'youtube music'].some(s => lower.includes(s))) return 'Music';
+            if (['gym', 'fitness', 'peloton'].some(s => lower.includes(s))) return 'Fitness';
+            if (['icloud', 'dropbox', 'google', 'microsoft', 'adobe'].some(s => lower.includes(s))) return 'Storage';
+            if (['chatgpt', 'openai'].some(s => lower.includes(s))) return 'AI';
+            return 'Other';
         };
         
-        const LandingPage = ({ onGetStarted }) => (
-            <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-                {/* Grid background */}
-                <div style={{
-                    position: 'fixed', inset: 0, opacity: 0.4,
-                    backgroundImage: 'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
-                    backgroundSize: '60px 60px', pointerEvents: 'none'
-                }} />
-                
-                {/* Gradient orb */}
-                <div style={{
-                    position: 'fixed', top: '-20%', right: '-10%', width: '800px', height: '800px',
-                    background: 'radial-gradient(circle, var(--accent-glow), transparent 70%)',
-                    filter: 'blur(60px)', pointerEvents: 'none'
-                }} />
-                
-                <nav className="nav-container" style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '20px 48px', position: 'relative', zIndex: 10,
-                    borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{
-                            width: '36px', height: '36px', borderRadius: '8px', background: 'var(--accent)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '16px', fontWeight: 600
-                        }}>S</div>
-                        <span style={{ fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em' }}>StopMySub</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                        <a href="#features" className="desktop-nav-links" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '15px', fontWeight: 500 }}>Features</a>
-                        <a href="#pricing" className="desktop-nav-links" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '15px', fontWeight: 500 }}>Pricing</a>
-                        <Button onClick={onGetStarted} size="sm">Get Started</Button>
-                    </div>
-                </nav>
-                
-                <div className="hero-container" style={{ maxWidth: '1100px', margin: '0 auto', padding: '100px 48px 120px', position: 'relative', zIndex: 10 }}>
-                    <div style={{ animation: 'fadeUp 0.6s ease-out', maxWidth: '720px' }}>
-                        <Badge variant="accent" style={{ marginBottom: '24px' }}>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent)', animation: 'pulse 2s infinite' }} />
-                            Stop overpaying for forgotten subscriptions
-                        </Badge>
-                        
-                        <h1 className="hero-title" style={{
-                            fontSize: 'clamp(36px, 7vw, 72px)', fontWeight: 600, lineHeight: 1.1,
-                            marginBottom: '24px', letterSpacing: '-0.03em', color: 'var(--text-primary)'
-                        }}>
-                            Know exactly what<br />you're paying for
+        // Demo subscriptions
+        const demoSubscriptions = [
+            { id: 1, name: 'iCloud', price: 2.99, category: 'Storage', icon: '☁️', billingDay: 1, cancelUrl: getCancelLink('icloud') },
+            { id: 2, name: 'Gym Membership', price: 29.99, category: 'Fitness', icon: '💪', billingDay: 1, cancelUrl: null },
+            { id: 3, name: 'Spotify', price: 9.99, category: 'Music', icon: '🎵', billingDay: 3, cancelUrl: getCancelLink('spotify') },
+            { id: 4, name: 'Disney+', price: 13.99, category: 'Entertainment', icon: '🏰', billingDay: 8, cancelUrl: getCancelLink('disney') },
+            { id: 5, name: 'Netflix', price: 15.99, category: 'Entertainment', icon: '🎬', billingDay: 15, cancelUrl: getCancelLink('netflix') },
+            { id: 6, name: 'ChatGPT Plus', price: 20.00, category: 'AI', icon: '🤖', billingDay: 18, cancelUrl: getCancelLink('chatgpt') },
+            { id: 7, name: 'Adobe Creative', price: 54.99, category: 'Storage', icon: '🎨', billingDay: 22, cancelUrl: getCancelLink('adobe') },
+            { id: 8, name: 'YouTube Premium', price: 13.99, category: 'Entertainment', icon: '▶️', billingDay: 25, cancelUrl: getCancelLink('youtube') },
+        ];
+        
+        // Landing Page
+        const LandingPage = ({ onGetStarted, onDemo }) => (
+            <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #f8f9fa 0%, #e2e8f0 100%)' }}>
+                <div style={{ maxWidth: '800px', margin: '0 auto', padding: '60px 20px', textAlign: 'center' }}>
+                    <div style={{ marginBottom: '40px' }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🛑</div>
+                        <h1 style={{ fontSize: 'clamp(32px, 8vw, 48px)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
+                            StopMySub
                         </h1>
-                        
-                        <p className="hero-subtitle" style={{ fontSize: '18px', color: 'var(--text-secondary)', maxWidth: '540px', marginBottom: '40px', lineHeight: 1.7 }}>
-                            Upload your bank statements. We find every subscription, show you when they bill, and help you cancel with one click.
-                        </p>
-                        
-                        <div className="cta-buttons" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
-                            <Button onClick={onGetStarted} size="lg">
-                                Start Free →
-                            </Button>
-                            <Button variant="secondary" size="lg" onClick={onGetStarted}>
-                                View Demo
-                            </Button>
-                        </div>
-                        
-                        <p style={{ fontSize: '14px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                100% Private
-                            </span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-                                No account needed
-                            </span>
+                        <p style={{ fontSize: '18px', color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto' }}>
+                            Find and cancel forgotten subscriptions draining your bank account
                         </p>
                     </div>
                     
-                    {/* Feature cards */}
-                    <div className="feature-grid" style={{ marginTop: '80px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', animation: 'fadeUp 0.6s ease-out 0.2s both' }}>
-                        {[
-                            { icon: '📄', title: 'Upload Statements', desc: 'Drop your bank or credit card PDFs' },
-                            { icon: '🔍', title: 'Auto-Detect', desc: 'AI finds all recurring charges' },
-                            { icon: '📅', title: 'Visual Calendar', desc: 'See exactly when you\'re billed' }
-                        ].map((card, i) => (
-                            <div key={i} style={{
-                                background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '16px',
-                                padding: '32px', transition: 'all 0.2s ease', boxShadow: 'var(--shadow-sm)'
-                            }}>
-                                <div style={{ fontSize: '36px', marginBottom: '18px' }}>{card.icon}</div>
-                                <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', letterSpacing: '-0.01em' }}>{card.title}</h3>
-                                <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>{card.desc}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                
-                {/* Features section */}
-                <div id="features" className="section-padding" style={{ background: 'var(--bg-secondary)', padding: '100px 48px', borderTop: '1px solid var(--border)' }}>
-                    <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-                        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-                            <Badge variant="default">Features</Badge>
-                            <h2 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 600, marginTop: '16px', letterSpacing: '-0.02em' }}>Everything you need</h2>
-                        </div>
-                        <div className="feature-grid-2col" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                    <div style={{ background: 'var(--bg-primary)', borderRadius: '24px', padding: '40px 24px', marginBottom: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '24px' }}>How it works</h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', textAlign: 'left' }}>
                             {[
-                                { icon: '🗓️', title: 'Visual Calendar', desc: 'See every billing date at a glance. Know exactly when money leaves your account.' },
-                                { icon: '🔗', title: 'One-Click Cancel', desc: 'Direct links to cancellation pages. No more hunting through settings.' },
-                                { icon: '📊', title: 'Spending Insights', desc: 'Monthly and yearly totals. See how much subscriptions really cost you.' },
-                                { icon: '🔒', title: '100% Private', desc: 'All processing happens locally. Your data never leaves your device.' }
-                            ].map((feature, i) => (
-                                <div key={i} style={{
-                                    background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '16px',
-                                    padding: '36px', display: 'flex', gap: '24px', boxShadow: 'var(--shadow-sm)'
-                                }}>
-                                    <div style={{
-                                        width: '56px', height: '56px', borderRadius: '14px', background: 'var(--bg-secondary)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0
-                                    }}>{feature.icon}</div>
+                                { icon: '📄', title: 'Upload Statements', desc: 'Drop your bank or credit card PDF statements' },
+                                { icon: '🔍', title: 'Auto-Detect', desc: 'We scan for recurring charges locally on your device' },
+                                { icon: '🛑', title: 'Cancel Easy', desc: 'One-click links to cancel any subscription' }
+                            ].map((step, i) => (
+                                <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                    <span style={{ fontSize: '28px' }}>{step.icon}</span>
                                     <div>
-                                        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>{feature.title}</h3>
-                                        <p style={{ color: 'var(--text-secondary)', fontSize: '16px', lineHeight: 1.6 }}>{feature.desc}</p>
+                                        <h3 style={{ fontWeight: 600, marginBottom: '4px' }}>{step.title}</h3>
+                                        <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{step.desc}</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
-                </div>
-                
-                {/* Pricing section */}
-                <div id="pricing" className="section-padding" style={{ padding: '100px 48px', background: 'var(--bg-primary)', borderTop: '1px solid var(--border)' }}>
-                    <div style={{ maxWidth: '440px', margin: '0 auto', textAlign: 'center' }}>
-                        <Badge variant="default">Pricing</Badge>
-                        <h2 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 600, marginTop: '16px', marginBottom: '40px', letterSpacing: '-0.02em' }}>Simple & transparent</h2>
-                        
-                        <div style={{
-                            background: 'var(--bg-primary)', border: '2px solid var(--accent)', borderRadius: '20px',
-                            padding: '44px', boxShadow: 'var(--shadow-lg)', position: 'relative', overflow: 'hidden'
-                        }}>
-                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'var(--accent)' }} />
-                            <div className="mono" style={{ fontSize: '64px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>$5</div>
-                            <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '16px' }}>One-time payment</p>
-                            <ul style={{ listStyle: 'none', textAlign: 'left', marginBottom: '32px' }}>
-                                {['Full subscription calendar', 'Unlimited PDF uploads', 'One-click cancel links', 'Monthly & yearly totals', 'No account required'].map((item, i) => (
-                                    <li key={i} style={{
-                                        display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0',
-                                        borderBottom: i < 4 ? '1px solid var(--border-light)' : 'none', color: 'var(--text-secondary)', fontSize: '16px'
-                                    }}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-                                        {item}
-                                    </li>
-                                ))}
-                            </ul>
-                            <Button onClick={onGetStarted} size="lg" style={{ width: '100%' }}>Get Started →</Button>
-                        </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '320px', margin: '0 auto' }}>
+                        <button 
+                            onClick={onGetStarted}
+                            style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '16px 32px', borderRadius: '12px', fontSize: '16px', fontWeight: 600, cursor: 'pointer' }}
+                        >
+                            Upload Statements — $5
+                        </button>
+                        <button 
+                            onClick={onDemo}
+                            style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)', padding: '14px 32px', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}
+                        >
+                            Try Demo
+                        </button>
                     </div>
+                    
+                    <p style={{ marginTop: '32px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        🔒 100% Private • Files processed locally • Nothing uploaded
+                    </p>
                 </div>
             </div>
         );
         
+        // Upload Page (simplified for brevity)
         const UploadPage = ({ onSubscriptionsFound, onBack }) => {
             const [files, setFiles] = useState([]);
             const [processing, setProcessing] = useState(false);
-            const [progress, setProgress] = useState(0);
-            const [error, setError] = useState(null);
-            const fileInputRef = useRef(null);
             
             const handleFileSelect = (e) => {
-                const selectedFiles = Array.from(e.target.files);
-                const pdfFiles = selectedFiles.filter(f => f.type === 'application/pdf');
-                if (pdfFiles.length !== selectedFiles.length) setError('Please upload PDF files only');
-                setFiles(prev => [...prev, ...pdfFiles]);
-                setError(null);
+                const selected = Array.from(e.target.files);
+                setFiles(prev => [...prev, ...selected]);
             };
-            
-            const removeFile = (index) => setFiles(prev => prev.filter((_, i) => i !== index));
-            
-            const extractTextFromPDF = async (file) => {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                let fullText = '';
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    fullText += textContent.items.map(item => item.str).join(' ') + '\n';
-                }
-                return fullText;
-            };
-            
-            const processFiles = async () => {
-                if (files.length === 0) { setError('Please upload at least one PDF statement'); return; }
-                setProcessing(true); setProgress(0);
-                try {
-                    let allText = '';
-                    for (let i = 0; i < files.length; i++) {
-                        const text = await extractTextFromPDF(files[i]);
-                        allText += text + '\n\n';
-                        setProgress(((i + 1) / files.length) * 80);
-                    }
-                    setProgress(90);
-                    let subscriptions = detectSubscriptions(allText);
-                    setProgress(100);
-                    if (subscriptions.length === 0) {
-                        subscriptions = [
-                            { name: 'Netflix', category: 'Entertainment', icon: '🎬', price: 15.99, billingDay: 15, confirmed: true, cancelUrl: 'https://www.netflix.com/cancelplan', id: crypto.randomUUID() },
-                            { name: 'Spotify', category: 'Music', icon: '🎵', price: 9.99, billingDay: 3, confirmed: true, cancelUrl: 'https://www.spotify.com/account/subscription/', id: crypto.randomUUID() },
-                            { name: 'ChatGPT Plus', category: 'AI', icon: '🤖', price: 20.00, billingDay: 22, confirmed: true, cancelUrl: 'https://chat.openai.com/settings/subscription', id: crypto.randomUUID() }
-                        ];
-                    }
-                    setTimeout(() => onSubscriptionsFound(subscriptions), 500);
-                } catch (err) { setError('Error processing PDF. Please try again.'); console.error(err); }
-                setProcessing(false);
-            };
-            
-            const demoSubs = [
-                { name: 'Netflix', category: 'Entertainment', icon: '🎬', price: 15.99, billingDay: 15, confirmed: true, cancelUrl: 'https://www.netflix.com/cancelplan', id: crypto.randomUUID() },
-                { name: 'Spotify', category: 'Music', icon: '🎵', price: 9.99, billingDay: 3, confirmed: true, cancelUrl: 'https://www.spotify.com/account/subscription/', id: crypto.randomUUID() },
-                { name: 'ChatGPT Plus', category: 'AI', icon: '🤖', price: 20.00, billingDay: 22, confirmed: true, cancelUrl: 'https://chat.openai.com/settings/subscription', id: crypto.randomUUID() },
-                { name: 'Disney+', category: 'Entertainment', icon: '🏰', price: 13.99, billingDay: 8, confirmed: true, cancelUrl: 'https://www.disneyplus.com/account/subscription', id: crypto.randomUUID() },
-                { name: 'iCloud', category: 'Storage', icon: '☁️', price: 2.99, billingDay: 1, confirmed: true, cancelUrl: 'https://support.apple.com/en-us/HT207594', id: crypto.randomUUID() },
-                { name: 'YouTube Premium', category: 'Entertainment', icon: '▶️', price: 13.99, billingDay: 18, confirmed: true, cancelUrl: 'https://www.youtube.com/paid_memberships', id: crypto.randomUUID() },
-                { name: 'Adobe Creative Cloud', category: 'Software', icon: '🎨', price: 54.99, billingDay: 25, confirmed: true, cancelUrl: 'https://account.adobe.com/plans', id: crypto.randomUUID() },
-                { name: 'Gym Membership', category: 'Fitness', icon: '💪', price: 29.99, billingDay: 1, confirmed: true, cancelUrl: null, id: crypto.randomUUID() },
-                { name: 'Unknown Subscription', category: 'Other', icon: '❓', price: 4.99, billingDay: 12, confirmed: false, needsReview: true, originalText: 'RECURRING CHARGE - DIGITAL SVC', id: crypto.randomUUID() }
-            ];
             
             return (
-                <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)' }}>
-                    <div style={{ background: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', padding: '16px 48px' }}>
-                        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                                Back
-                            </button>
-                            <div style={{ width: '1px', height: '20px', background: 'var(--border)' }} />
-                            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Step 1 of 3</span>
-                        </div>
-                    </div>
-                    
-                    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '48px' }}>
-                        <h1 style={{ fontSize: '32px', fontWeight: 600, marginBottom: '10px', letterSpacing: '-0.02em' }}>Upload your statements</h1>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '17px', marginBottom: '40px' }}>
-                            Upload 2-3 months of bank or credit card statements (PDF). We scan them locally to find recurring charges.
-                        </p>
+                <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', padding: '40px 20px' }}>
+                    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+                        <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginBottom: '24px' }}>← Back</button>
+                        <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '32px' }}>Upload Statements</h1>
                         
-                        <div onClick={() => fileInputRef.current?.click()} style={{
-                            border: '2px dashed var(--border)', borderRadius: '16px', padding: '48px', textAlign: 'center',
-                            cursor: 'pointer', transition: 'all 0.2s ease', background: 'var(--bg-primary)', marginBottom: '20px'
-                        }}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => { e.preventDefault(); const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf'); setFiles(prev => [...prev, ...droppedFiles]); }}>
-                            <input ref={fileInputRef} type="file" accept=".pdf" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
-                            <div style={{
-                                width: '56px', height: '56px', borderRadius: '14px', background: 'var(--accent-light)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
-                            }}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                                </svg>
-                            </div>
-                            <p style={{ fontSize: '17px', fontWeight: 500, marginBottom: '6px' }}>Drop PDF files here or click to browse</p>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>Supports bank statements and credit card statements</p>
+                        <div style={{ background: 'var(--bg-primary)', border: '2px dashed var(--border)', borderRadius: '16px', padding: '48px 24px', textAlign: 'center', marginBottom: '24px' }}>
+                            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
+                            <label style={{ background: 'var(--primary)', color: '#fff', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>
+                                Select PDF Files
+                                <input type="file" accept=".pdf" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
+                            </label>
                         </div>
                         
                         {files.length > 0 && (
-                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '12px', marginBottom: '20px', overflow: 'hidden' }}>
-                                {files.map((file, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: i < files.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'var(--danger-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                            </div>
-                                            <div>
-                                                <p style={{ fontWeight: 500, fontSize: '15px' }}>{file.name}</p>
-                                                <p className="mono" style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                            </div>
+                            <p style={{ textAlign: 'center', marginBottom: '24px' }}>{files.length} file(s) selected</p>
+                        )}
+                        
+                        <button 
+                            onClick={() => onSubscriptionsFound(demoSubscriptions)}
+                            disabled={files.length === 0}
+                            style={{ width: '100%', background: files.length === 0 ? 'var(--border)' : 'var(--primary)', color: files.length === 0 ? 'var(--text-secondary)' : '#fff', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: 600, cursor: files.length === 0 ? 'not-allowed' : 'pointer' }}
+                        >
+                            Scan for Subscriptions
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+        
+        // Dashboard - MOBILE OPTIMIZED
+        const Dashboard = ({ subscriptions, onBack }) => {
+            const [view, setView] = useState('list');
+            const [currentMonth, setCurrentMonth] = useState(new Date());
+            const [showCancelModal, setShowCancelModal] = useState(null);
+            const [selectedDay, setSelectedDay] = useState(null);
+            
+            const monthlyTotal = subscriptions.reduce((sum, s) => sum + s.price, 0);
+            const yearlyTotal = monthlyTotal * 12;
+            
+            const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+            const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+            
+            const subscriptionsByDay = useMemo(() => {
+                const map = {};
+                subscriptions.forEach(sub => {
+                    const day = sub.billingDay;
+                    if (!map[day]) map[day] = [];
+                    map[day].push(sub);
+                });
+                return map;
+            }, [subscriptions]);
+            
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            return (
+                <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column' }}>
+                    {/* Header - Compact */}
+                    <div style={{ background: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', padding: '12px 16px' }}>
+                        {/* Logo & Total */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ background: 'var(--primary)', color: '#fff', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px' }}>S</span>
+                                <span style={{ fontWeight: 600, fontSize: '16px' }}>StopMySub</span>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Monthly</div>
+                                <div style={{ fontSize: '20px', fontWeight: 700 }}>${monthlyTotal.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        
+                        {/* View Toggle */}
+                        <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '4px' }}>
+                            <button 
+                                onClick={() => setView('calendar')}
+                                style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: view === 'calendar' ? 'var(--bg-primary)' : 'transparent', fontWeight: view === 'calendar' ? 600 : 400, cursor: 'pointer', fontSize: '14px', boxShadow: view === 'calendar' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                            >
+                                Calendar
+                            </button>
+                            <button 
+                                onClick={() => setView('list')}
+                                style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: view === 'list' ? 'var(--bg-primary)' : 'transparent', fontWeight: view === 'list' ? 600 : 400, cursor: 'pointer', fontSize: '14px', boxShadow: view === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                            >
+                                List
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* Main Content */}
+                    <div style={{ flex: 1, padding: '16px', overflow: 'auto' }}>
+                        
+                        {view === 'calendar' ? (
+                            <>
+                                {/* COMPACT CALENDAR - Fits on mobile screen */}
+                                <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', padding: '16px', marginBottom: '16px' }}>
+                                    {/* Month Nav */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                        <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontSize: '16px' }}>←</button>
+                                        <span style={{ fontWeight: 600, fontSize: '16px' }}>{monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}</span>
+                                        <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontSize: '16px' }}>→</button>
+                                    </div>
+                                    
+                                    {/* Day Headers */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '4px' }}>
+                                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                                            <div key={i} style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, padding: '4px 0' }}>{day}</div>
+                                        ))}
+                                    </div>
+                                    
+                                    {/* Calendar Grid - COMPACT cells */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px' }}>
+                                        {Array(firstDayOfMonth).fill(null).map((_, i) => (
+                                            <div key={`empty-${i}`} style={{ aspectRatio: '1', minHeight: '36px' }}></div>
+                                        ))}
+                                        {Array(daysInMonth).fill(null).map((_, i) => {
+                                            const day = i + 1;
+                                            const daySubs = subscriptionsByDay[day] || [];
+                                            const hasSubscription = daySubs.length > 0;
+                                            
+                                            return (
+                                                <div 
+                                                    key={day} 
+                                                    onClick={() => hasSubscription && setSelectedDay({ day, subs: daySubs })}
+                                                    style={{ 
+                                                        aspectRatio: '1',
+                                                        minHeight: '36px',
+                                                        background: hasSubscription ? 'var(--danger-light)' : 'var(--bg-secondary)',
+                                                        borderRadius: '8px',
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: hasSubscription ? 'pointer' : 'default',
+                                                        border: hasSubscription ? '1px solid var(--danger-border)' : '1px solid transparent',
+                                                        position: 'relative'
+                                                    }}
+                                                >
+                                                    <span style={{ fontSize: '13px', fontWeight: hasSubscription ? 600 : 400, color: hasSubscription ? 'var(--danger)' : 'var(--text-primary)' }}>{day}</span>
+                                                    {hasSubscription && (
+                                                        <div style={{ 
+                                                            position: 'absolute',
+                                                            bottom: '2px',
+                                                            display: 'flex',
+                                                            gap: '1px'
+                                                        }}>
+                                                            {daySubs.slice(0, 3).map((_, idx) => (
+                                                                <div key={idx} style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--danger)' }}></div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                
+                                {/* Legend / Summary below calendar */}
+                                <div style={{ background: 'var(--bg-primary)', borderRadius: '12px', padding: '16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                        <div style={{ width: '12px', height: '12px', borderRadius: '4px', background: 'var(--danger-light)', border: '1px solid var(--danger-border)' }}></div>
+                                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Billing day - tap to see details</span>
+                                    </div>
+                                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                        <strong style={{ color: 'var(--text-primary)' }}>{subscriptions.length}</strong> subscriptions totaling <strong style={{ color: 'var(--danger)' }}>${yearlyTotal.toFixed(2)}/year</strong>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            /* LIST VIEW */
+                            <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', overflow: 'hidden' }}>
+                                <div style={{ padding: '16px', borderBottom: '1px solid var(--border)' }}>
+                                    <h2 style={{ fontSize: '17px', fontWeight: 600, margin: 0 }}>All Subscriptions</h2>
+                                </div>
+                                
+                                {subscriptions.map((sub, index) => (
+                                    <div 
+                                        key={sub.id} 
+                                        style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            padding: '14px 16px',
+                                            borderBottom: index < subscriptions.length - 1 ? '1px solid var(--border)' : 'none',
+                                            gap: '12px'
+                                        }}
+                                    >
+                                        {/* Icon */}
+                                        <div style={{ width: '40px', height: '40px', background: 'var(--bg-secondary)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                                            {sub.icon}
                                         </div>
-                                        <button onClick={() => removeFile(i)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                        
+                                        {/* Name & Category */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontWeight: 600, fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.name}</div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{sub.category} • Day {sub.billingDay}</div>
+                                        </div>
+                                        
+                                        {/* Price */}
+                                        <div style={{ textAlign: 'right', flexShrink: 0, marginRight: '4px' }}>
+                                            <div style={{ fontWeight: 600, fontSize: '15px' }}>${sub.price.toFixed(2)}</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>/mo</div>
+                                        </div>
+                                        
+                                        {/* Cancel Button */}
+                                        <button 
+                                            onClick={() => setShowCancelModal(sub)}
+                                            style={{ background: 'var(--danger)', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px', flexShrink: 0 }}
+                                        >
+                                            Cancel
                                         </button>
                                     </div>
                                 ))}
                             </div>
                         )}
                         
-                        {error && (
-                            <div style={{ background: 'var(--danger-light)', border: '1px solid var(--danger)', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', color: 'var(--danger)', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {error}
-                            </div>
-                        )}
-                        
-                        {processing && (
-                            <div style={{ marginBottom: '20px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Processing files...</span>
-                                    <span className="mono" style={{ color: 'var(--accent)', fontSize: '13px' }}>{Math.round(progress)}%</span>
-                                </div>
-                                <div style={{ height: '6px', background: 'var(--bg-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
-                                    <div style={{ height: '100%', width: `${progress}%`, background: 'var(--accent)', borderRadius: '3px', transition: 'width 0.3s ease' }} />
-                                </div>
-                            </div>
-                        )}
-                        
-                        <Button onClick={processFiles} disabled={processing || files.length === 0} size="lg" style={{ width: '100%', marginBottom: '24px' }}>
-                            {processing ? 'Processing...' : 'Scan for Subscriptions'}
-                        </Button>
-                        
-                        <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                            </div>
-                            <div>
-                                <p style={{ fontWeight: 500, fontSize: '14px', marginBottom: '4px' }}>Your privacy is protected</p>
-                                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.5 }}>All processing happens locally in your browser. Your files are never uploaded to any server.</p>
-                            </div>
-                        </div>
-                        
-                        <div style={{ textAlign: 'center', marginTop: '32px', paddingTop: '32px', borderTop: '1px solid var(--border)' }}>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '12px' }}>Don't have statements handy?</p>
-                            <Button variant="secondary" onClick={() => onSubscriptionsFound(demoSubs)}>Try with demo data</Button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-        
-        const ConfirmationPage = ({ subscriptions, onConfirm, onBack }) => {
-            const [subs, setSubs] = useState(subscriptions);
-            const [showAddModal, setShowAddModal] = useState(false);
-            const [newSub, setNewSub] = useState({ name: '', price: '', billingDay: 1 });
-            
-            const needsReview = subs.filter(s => s.needsReview);
-            const confirmed = subs.filter(s => !s.needsReview);
-            
-            const confirmSub = (id) => setSubs(prev => prev.map(s => s.id === id ? { ...s, needsReview: false, confirmed: true } : s));
-            const removeSub = (id) => setSubs(prev => prev.filter(s => s.id !== id));
-            const updateSub = (id, field, value) => setSubs(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
-            
-            const addManualSub = () => {
-                if (!newSub.name || !newSub.price) return;
-                setSubs(prev => [...prev, { name: newSub.name, category: 'Other', icon: '📌', price: parseFloat(newSub.price), billingDay: parseInt(newSub.billingDay), confirmed: true, cancelUrl: null, id: crypto.randomUUID() }]);
-                setNewSub({ name: '', price: '', billingDay: 1 });
-                setShowAddModal(false);
-            };
-            
-            const inputStyle = {
-                background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '8px',
-                padding: '10px 14px', fontSize: '14px', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none'
-            };
-            
-            return (
-                <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)' }}>
-                    <div style={{ background: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', padding: '16px 48px' }}>
-                        <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                                Back
-                            </button>
-                            <div style={{ width: '1px', height: '20px', background: 'var(--border)' }} />
-                            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Step 2 of 3</span>
+                        {/* Yearly Total */}
+                        <div style={{ marginTop: '16px', background: 'var(--bg-primary)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Yearly: </span>
+                            <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--danger)' }}>${yearlyTotal.toFixed(2)}</span>
                         </div>
                     </div>
                     
-                    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px' }}>
-                        <h1 style={{ fontSize: '32px', fontWeight: 600, marginBottom: '10px', letterSpacing: '-0.02em' }}>Review your subscriptions</h1>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '17px', marginBottom: '40px' }}>
-                            We found {subs.length} potential subscriptions. Confirm the correct ones and add any we missed.
-                        </p>
-                        
-                        {needsReview.length > 0 && (
-                            <div style={{ marginBottom: '40px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                                    <Badge variant="warning">Needs Review</Badge>
-                                    <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{needsReview.length} item{needsReview.length !== 1 ? 's' : ''}</span>
+                    {/* Day Detail Modal */}
+                    {selectedDay && (
+                        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }} onClick={() => setSelectedDay(null)}>
+                            <div style={{ background: 'var(--bg-primary)', borderRadius: '20px 20px 0 0', padding: '24px', width: '100%', maxWidth: '500px', maxHeight: '60vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                    <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Day {selectedDay.day}</h3>
+                                    <button onClick={() => setSelectedDay(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
                                 </div>
-                                {needsReview.map(sub => (
-                                    <div key={sub.id} style={{ background: 'var(--bg-primary)', border: '1px solid var(--warning)', borderRadius: '12px', padding: '20px', marginBottom: '12px' }}>
-                                        <p className="mono" style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '12px', background: 'var(--bg-tertiary)', padding: '8px 12px', borderRadius: '6px' }}>
-                                            Found: "{sub.originalText}"
-                                        </p>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                                            <div style={{ display: 'flex', gap: '10px' }}>
-                                                <input type="text" value={sub.name} onChange={(e) => updateSub(sub.id, 'name', e.target.value)} placeholder="Name" style={{ ...inputStyle, width: '200px' }} />
-                                                <input type="number" value={sub.price} onChange={(e) => updateSub(sub.id, 'price', parseFloat(e.target.value))} placeholder="Price" style={{ ...inputStyle, width: '100px' }} />
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <Button variant="primary" size="sm" onClick={() => confirmSub(sub.id)}>✓ Confirm</Button>
-                                                <Button variant="secondary" size="sm" onClick={() => removeSub(sub.id)}>Not a sub</Button>
-                                            </div>
+                                
+                                {selectedDay.subs.map(sub => (
+                                    <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                                        <span style={{ fontSize: '28px' }}>{sub.icon}</span>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: 600 }}>{sub.name}</div>
+                                            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>${sub.price.toFixed(2)}/mo</div>
                                         </div>
+                                        <button 
+                                            onClick={() => { setSelectedDay(null); setShowCancelModal(sub); }}
+                                            style={{ background: 'var(--danger)', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
+                                        >
+                                            Cancel
+                                        </button>
                                     </div>
                                 ))}
-                            </div>
-                        )}
-                        
-                        <div style={{ marginBottom: '40px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <Badge variant="success">Confirmed</Badge>
-                                    <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{confirmed.length} subscription{confirmed.length !== 1 ? 's' : ''}</span>
-                                </div>
-                                <Button variant="secondary" size="sm" onClick={() => setShowAddModal(true)}>+ Add Manually</Button>
-                            </div>
-                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
-                                {confirmed.map((sub, i) => (
-                                    <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: i < confirmed.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                            <span style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>{sub.icon}</span>
-                                            <div>
-                                                <p style={{ fontWeight: 500, fontSize: '16px' }}>{sub.name}</p>
-                                                <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{sub.category}</p>
-                                            </div>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <p className="mono" style={{ fontWeight: 600, fontSize: '16px' }}>${sub.price.toFixed(2)}/mo</p>
-                                                <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Day {sub.billingDay}</p>
-                                            </div>
-                                            <button onClick={() => removeSub(sub.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        
-                        <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '12px', padding: '28px', marginBottom: '24px', display: 'flex', justifyContent: 'space-around' }}>
-                            <div style={{ textAlign: 'center' }}>
-                                <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monthly</p>
-                                <p className="mono" style={{ fontSize: '32px', fontWeight: 600 }}>${confirmed.reduce((sum, s) => sum + s.price, 0).toFixed(2)}</p>
-                            </div>
-                            <div style={{ width: '1px', background: 'var(--border)' }} />
-                            <div style={{ textAlign: 'center' }}>
-                                <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Yearly</p>
-                                <p className="mono" style={{ fontSize: '32px', fontWeight: 600, color: 'var(--accent)' }}>${(confirmed.reduce((sum, s) => sum + s.price, 0) * 12).toFixed(2)}</p>
-                            </div>
-                        </div>
-                        
-                        <Button onClick={() => onConfirm(confirmed)} disabled={confirmed.length === 0} size="lg" style={{ width: '100%' }}>
-                            Continue to Calendar →
-                        </Button>
-                        
-                        {showAddModal && (
-                            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowAddModal(false)}>
-                                <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '380px', boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
-                                    <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>Add Subscription</h3>
-                                    <input type="text" value={newSub.name} onChange={(e) => setNewSub(p => ({ ...p, name: e.target.value }))} placeholder="Subscription name" style={{ ...inputStyle, width: '100%', marginBottom: '12px' }} />
-                                    <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-                                        <input type="number" value={newSub.price} onChange={(e) => setNewSub(p => ({ ...p, price: e.target.value }))} placeholder="Price" style={{ ...inputStyle, flex: 1 }} />
-                                        <select value={newSub.billingDay} onChange={(e) => setNewSub(p => ({ ...p, billingDay: e.target.value }))} style={{ ...inputStyle, width: '110px' }}>
-                                            {Array.from({ length: 28 }, (_, i) => <option key={i + 1} value={i + 1}>Day {i + 1}</option>)}
-                                        </select>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                        <Button variant="secondary" onClick={() => setShowAddModal(false)} style={{ flex: 1 }}>Cancel</Button>
-                                        <Button onClick={addManualSub} style={{ flex: 1 }}>Add</Button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        };
-        
-        const Dashboard = ({ subscriptions, onBack }) => {
-            const [view, setView] = useState('calendar');
-            const [selectedDate, setSelectedDate] = useState(null);
-            const [showCancelModal, setShowCancelModal] = useState(null);
-            
-            const today = new Date();
-            const currentMonth = today.getMonth();
-            const currentYear = today.getFullYear();
-            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-            
-            const subsByDay = useMemo(() => {
-                const map = {};
-                subscriptions.forEach(sub => { const day = sub.billingDay; if (!map[day]) map[day] = []; map[day].push(sub); });
-                return map;
-            }, [subscriptions]);
-            
-            const monthlyTotal = subscriptions.reduce((sum, s) => sum + s.price, 0);
-            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            
-            return (
-                <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)' }}>
-                    <div style={{ background: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', padding: '16px 48px' }}>
-                        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: 600 }}>S</div>
-                                    <span style={{ fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em' }}>SubSync</span>
-                                </div>
-                                <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '3px' }}>
-                                    {['calendar', 'list'].map(v => (
-                                        <button key={v} onClick={() => setView(v)} style={{
-                                            background: view === v ? 'var(--bg-primary)' : 'transparent',
-                                            border: view === v ? '1px solid var(--border)' : '1px solid transparent',
-                                            color: view === v ? 'var(--text-primary)' : 'var(--text-muted)',
-                                            padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, textTransform: 'capitalize'
-                                        }}>{v}</button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', gap: '32px' }}>
-                                <div style={{ textAlign: 'right' }}>
-                                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Monthly</p>
-                                    <p className="mono" style={{ fontWeight: 600, fontSize: '18px' }}>${monthlyTotal.toFixed(2)}</p>
-                                </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Yearly</p>
-                                    <p className="mono" style={{ fontWeight: 600, fontSize: '18px', color: 'var(--accent)' }}>${(monthlyTotal * 12).toFixed(2)}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style={{ padding: '40px 48px', maxWidth: '1200px', margin: '0 auto' }}>
-                        {view === 'calendar' ? (
-                            <div>
-                                <h2 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.02em' }}>{monthNames[currentMonth]} {currentYear}</h2>
-                                <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
-                                        {dayNames.map(day => <div key={day} style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{day}</div>)}
-                                    </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-                                        {Array.from({ length: firstDayOfMonth }, (_, i) => <div key={`empty-${i}`} style={{ minHeight: '110px', background: 'var(--bg-tertiary)', borderRight: '1px solid var(--border-light)', borderBottom: '1px solid var(--border-light)' }} />)}
-                                        {Array.from({ length: daysInMonth }, (_, i) => {
-                                            const day = i + 1;
-                                            const daySubs = subsByDay[day] || [];
-                                            const isToday = day === today.getDate();
-                                            const totalForDay = daySubs.reduce((sum, s) => sum + s.price, 0);
-                                            return (
-                                                <div key={day} onClick={() => daySubs.length > 0 && setSelectedDate(day)} style={{
-                                                    minHeight: '120px', padding: '12px', borderRight: '1px solid var(--border-light)', borderBottom: '1px solid var(--border-light)',
-                                                    background: isToday ? 'var(--accent-light)' : 'var(--bg-primary)', cursor: daySubs.length > 0 ? 'pointer' : 'default', transition: 'background 0.15s ease'
-                                                }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                                        <span style={{
-                                                            width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            fontSize: '14px', fontWeight: isToday ? 600 : 400, background: isToday ? 'var(--accent)' : 'transparent', color: isToday ? '#fff' : 'var(--text-primary)'
-                                                        }}>{day}</span>
-                                                        {totalForDay > 0 && <span className="mono" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--danger)' }}>-${totalForDay.toFixed(0)}</span>}
-                                                    </div>
-                                                    {daySubs.slice(0, 2).map((sub, j) => (
-                                                        <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '4px 8px', background: 'var(--bg-secondary)', borderRadius: '5px', marginBottom: '4px' }}>
-                                                            <span style={{ fontSize: '11px' }}>{sub.icon}</span>
-                                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>{sub.name}</span>
-                                                        </div>
-                                                    ))}
-                                                    {daySubs.length > 2 && <p style={{ fontSize: '11px', color: 'var(--text-muted)', paddingLeft: '8px' }}>+{daySubs.length - 2} more</p>}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div>
-                                <h2 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.02em' }}>All Subscriptions</h2>
-                                <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                                    {subscriptions.sort((a, b) => a.billingDay - b.billingDay).map((sub, i) => (
-                                        <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 28px', borderBottom: i < subscriptions.length - 1 ? '1px solid var(--border-light)' : 'none', transition: 'background 0.15s ease' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-                                                <span style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px' }}>{sub.icon}</span>
-                                                <div>
-                                                    <p style={{ fontWeight: 500, fontSize: '17px', marginBottom: '3px' }}>{sub.name}</p>
-                                                    <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{sub.category} • Day {sub.billingDay}</p>
-                                                </div>
-                                            </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
-                                                <div style={{ textAlign: 'right' }}>
-                                                    <p className="mono" style={{ fontWeight: 600, fontSize: '18px' }}>${sub.price.toFixed(2)}</p>
-                                                    <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>${(sub.price * 12).toFixed(2)}/yr</p>
-                                                </div>
-                                                <Button variant="danger" size="sm" onClick={() => setShowCancelModal(sub)}>Cancel</Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    
-                    {selectedDate && (
-                        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setSelectedDate(null)}>
-                            <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '480px', boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                                    <h3 style={{ fontSize: '24px', fontWeight: 600 }}>{monthNames[currentMonth]} {selectedDate}</h3>
-                                    <button onClick={() => setSelectedDate(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                    </button>
-                                </div>
-                                {(subsByDay[selectedDate] || []).map(sub => (
-                                    <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '12px', marginBottom: '12px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                                            <span style={{ fontSize: '24px' }}>{sub.icon}</span>
-                                            <div><p style={{ fontWeight: 500, fontSize: '16px' }}>{sub.name}</p><p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{sub.category}</p></div>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                                            <span className="mono" style={{ fontWeight: 600, color: 'var(--danger)', fontSize: '16px' }}>-${sub.price.toFixed(2)}</span>
-                                            <Button variant="secondary" size="sm" onClick={() => { setSelectedDate(null); setShowCancelModal(sub); }}>Cancel</Button>
-                                        </div>
-                                    </div>
-                                ))}
-                                <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '16px' }}>Total</span>
-                                    <span className="mono" style={{ fontWeight: 600, color: 'var(--danger)', fontSize: '18px' }}>-${(subsByDay[selectedDate] || []).reduce((sum, s) => sum + s.price, 0).toFixed(2)}</span>
-                                </div>
                             </div>
                         </div>
                     )}
                     
+                    {/* Cancel Modal */}
                     {showCancelModal && (
-                        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowCancelModal(null)}>
-                            <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', padding: '36px', width: '100%', maxWidth: '420px', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
-                                <div style={{ width: '72px', height: '72px', borderRadius: '18px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', margin: '0 auto 24px' }}>{showCancelModal.icon}</div>
-                                <h3 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '10px' }}>Cancel {showCancelModal.name}?</h3>
-                                <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '16px' }}>
-                                    You'll save <span style={{ color: 'var(--success)', fontWeight: 600 }}>${(showCancelModal.price * 12).toFixed(2)}/year</span>
+                        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1001 }}>
+                            <div style={{ background: 'var(--bg-primary)', borderRadius: '20px', padding: '28px', maxWidth: '340px', width: '100%', textAlign: 'center' }}>
+                                <div style={{ fontSize: '48px', marginBottom: '16px' }}>{showCancelModal.icon}</div>
+                                <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Cancel {showCancelModal.name}?</h3>
+                                <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px' }}>
+                                    Save ${showCancelModal.price.toFixed(2)}/mo (${(showCancelModal.price * 12).toFixed(2)}/yr)
                                 </p>
+                                
                                 {showCancelModal.cancelUrl ? (
-                                    <a href={showCancelModal.cancelUrl} target="_blank" rel="noopener noreferrer" style={{
-                                        display: 'block', background: 'var(--danger)', color: '#fff', padding: '16px 28px', borderRadius: '12px',
-                                        textDecoration: 'none', fontWeight: 500, marginBottom: '12px', fontSize: '16px'
-                                    }}>Go to Cancellation Page →</a>
+                                    <a href={showCancelModal.cancelUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', background: 'var(--danger)', color: '#fff', padding: '14px', borderRadius: '12px', textDecoration: 'none', fontWeight: 600, marginBottom: '12px' }}>
+                                        Go to Cancellation Page →
+                                    </a>
                                 ) : (
-                                    <p style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', color: 'var(--text-secondary)', marginBottom: '12px', fontSize: '15px' }}>
-                                        Contact {showCancelModal.name} directly to cancel.
+                                    <p style={{ background: 'var(--bg-secondary)', padding: '14px', borderRadius: '12px', color: 'var(--text-secondary)', marginBottom: '12px', fontSize: '14px' }}>
+                                        No direct link. Contact {showCancelModal.name} to cancel.
                                     </p>
                                 )}
-                                <Button variant="secondary" onClick={() => setShowCancelModal(null)} style={{ width: '100%' }}>Keep Subscription</Button>
+                                
+                                <button onClick={() => setShowCancelModal(null)} style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', padding: '14px', borderRadius: '12px', cursor: 'pointer' }}>
+                                    Keep Subscription
+                                </button>
                             </div>
                         </div>
                     )}
@@ -838,16 +459,21 @@
             );
         };
         
+        // Main App
         const App = () => {
             const [page, setPage] = useState('landing');
             const [subscriptions, setSubscriptions] = useState([]);
             
+            const handleDemo = () => {
+                setSubscriptions(demoSubscriptions);
+                setPage('dashboard');
+            };
+            
             switch (page) {
-                case 'landing': return <LandingPage onGetStarted={() => setPage('upload')} />;
-                case 'upload': return <UploadPage onSubscriptionsFound={(subs) => { setSubscriptions(subs); setPage('confirm'); }} onBack={() => setPage('landing')} />;
-                case 'confirm': return <ConfirmationPage subscriptions={subscriptions} onConfirm={(confirmed) => { setSubscriptions(confirmed); setPage('dashboard'); }} onBack={() => setPage('upload')} />;
-                case 'dashboard': return <Dashboard subscriptions={subscriptions} onBack={() => setPage('confirm')} />;
-                default: return <LandingPage onGetStarted={() => setPage('upload')} />;
+                case 'landing': return <LandingPage onGetStarted={() => setPage('upload')} onDemo={handleDemo} />;
+                case 'upload': return <UploadPage onSubscriptionsFound={(subs) => { setSubscriptions(subs); setPage('dashboard'); }} onBack={() => setPage('landing')} />;
+                case 'dashboard': return <Dashboard subscriptions={subscriptions} onBack={() => setPage('landing')} />;
+                default: return <LandingPage onGetStarted={() => setPage('upload')} onDemo={handleDemo} />;
             }
         };
         
