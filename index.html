@@ -62,6 +62,24 @@
             100% { background-position: 200% 0; }
         }
         .mono { font-family: 'Geist Mono', monospace; }
+        
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            .desktop-nav-links { display: none !important; }
+            .nav-container { padding: 16px 20px !important; }
+            .hero-container { padding: 60px 24px 80px !important; }
+            .hero-title { font-size: 36px !important; }
+            .hero-subtitle { font-size: 16px !important; }
+            .feature-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+            .feature-grid-2col { grid-template-columns: 1fr !important; }
+            .cta-buttons { flex-direction: column !important; }
+            .cta-buttons button { width: 100% !important; }
+            .stats-container { flex-direction: column !important; gap: 20px !important; }
+            .calendar-grid { font-size: 12px !important; }
+            .calendar-day { min-height: 80px !important; padding: 8px !important; }
+            .sub-list-item { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+            .section-padding { padding: 60px 24px !important; }
+        }
     </style>
 </head>
 <body>
@@ -197,7 +215,7 @@
                     filter: 'blur(60px)', pointerEvents: 'none'
                 }} />
                 
-                <nav style={{
+                <nav className="nav-container" style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '20px 48px', position: 'relative', zIndex: 10,
                     borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)'
@@ -207,34 +225,34 @@
                             width: '36px', height: '36px', borderRadius: '8px', background: 'var(--accent)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '16px', fontWeight: 600
                         }}>S</div>
-                        <span style={{ fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em' }}>StopMySub</span>
+                        <span style={{ fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em' }}>StopMySub</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
-                        <a href="#features" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '15px', fontWeight: 500 }}>Features</a>
-                        <a href="#pricing" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '15px', fontWeight: 500 }}>Pricing</a>
+                    <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                        <a href="#features" className="desktop-nav-links" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '15px', fontWeight: 500 }}>Features</a>
+                        <a href="#pricing" className="desktop-nav-links" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '15px', fontWeight: 500 }}>Pricing</a>
                         <Button onClick={onGetStarted} size="sm">Get Started</Button>
                     </div>
                 </nav>
                 
-                <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '100px 48px 120px', position: 'relative', zIndex: 10 }}>
+                <div className="hero-container" style={{ maxWidth: '1100px', margin: '0 auto', padding: '100px 48px 120px', position: 'relative', zIndex: 10 }}>
                     <div style={{ animation: 'fadeUp 0.6s ease-out', maxWidth: '720px' }}>
                         <Badge variant="accent" style={{ marginBottom: '24px' }}>
                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent)', animation: 'pulse 2s infinite' }} />
                             Stop overpaying for forgotten subscriptions
                         </Badge>
                         
-                        <h1 style={{
-                            fontSize: 'clamp(48px, 7vw, 72px)', fontWeight: 600, lineHeight: 1.1,
+                        <h1 className="hero-title" style={{
+                            fontSize: 'clamp(36px, 7vw, 72px)', fontWeight: 600, lineHeight: 1.1,
                             marginBottom: '24px', letterSpacing: '-0.03em', color: 'var(--text-primary)'
                         }}>
                             Know exactly what<br />you're paying for
                         </h1>
                         
-                        <p style={{ fontSize: '20px', color: 'var(--text-secondary)', maxWidth: '540px', marginBottom: '40px', lineHeight: 1.7 }}>
+                        <p className="hero-subtitle" style={{ fontSize: '18px', color: 'var(--text-secondary)', maxWidth: '540px', marginBottom: '40px', lineHeight: 1.7 }}>
                             Upload your bank statements. We find every subscription, show you when they bill, and help you cancel with one click.
                         </p>
                         
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
+                        <div className="cta-buttons" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
                             <Button onClick={onGetStarted} size="lg">
                                 Start Free →
                             </Button>
@@ -256,7 +274,7 @@
                     </div>
                     
                     {/* Feature cards */}
-                    <div style={{ marginTop: '100px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', animation: 'fadeUp 0.6s ease-out 0.2s both' }}>
+                    <div className="feature-grid" style={{ marginTop: '80px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', animation: 'fadeUp 0.6s ease-out 0.2s both' }}>
                         {[
                             { icon: '📄', title: 'Upload Statements', desc: 'Drop your bank or credit card PDFs' },
                             { icon: '🔍', title: 'Auto-Detect', desc: 'AI finds all recurring charges' },
@@ -275,13 +293,13 @@
                 </div>
                 
                 {/* Features section */}
-                <div id="features" style={{ background: 'var(--bg-secondary)', padding: '100px 48px', borderTop: '1px solid var(--border)' }}>
+                <div id="features" className="section-padding" style={{ background: 'var(--bg-secondary)', padding: '100px 48px', borderTop: '1px solid var(--border)' }}>
                     <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
                         <div style={{ textAlign: 'center', marginBottom: '60px' }}>
                             <Badge variant="default">Features</Badge>
-                            <h2 style={{ fontSize: '42px', fontWeight: 600, marginTop: '16px', letterSpacing: '-0.02em' }}>Everything you need</h2>
+                            <h2 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 600, marginTop: '16px', letterSpacing: '-0.02em' }}>Everything you need</h2>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                        <div className="feature-grid-2col" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
                             {[
                                 { icon: '🗓️', title: 'Visual Calendar', desc: 'See every billing date at a glance. Know exactly when money leaves your account.' },
                                 { icon: '🔗', title: 'One-Click Cancel', desc: 'Direct links to cancellation pages. No more hunting through settings.' },
@@ -307,10 +325,10 @@
                 </div>
                 
                 {/* Pricing section */}
-                <div id="pricing" style={{ padding: '100px 48px', background: 'var(--bg-primary)', borderTop: '1px solid var(--border)' }}>
+                <div id="pricing" className="section-padding" style={{ padding: '100px 48px', background: 'var(--bg-primary)', borderTop: '1px solid var(--border)' }}>
                     <div style={{ maxWidth: '440px', margin: '0 auto', textAlign: 'center' }}>
                         <Badge variant="default">Pricing</Badge>
-                        <h2 style={{ fontSize: '42px', fontWeight: 600, marginTop: '16px', marginBottom: '40px', letterSpacing: '-0.02em' }}>Simple & transparent</h2>
+                        <h2 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 600, marginTop: '16px', marginBottom: '40px', letterSpacing: '-0.02em' }}>Simple & transparent</h2>
                         
                         <div style={{
                             background: 'var(--bg-primary)', border: '2px solid var(--accent)', borderRadius: '20px',
@@ -672,7 +690,7 @@
                             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: 600 }}>S</div>
-                                    <span style={{ fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em' }}>StopMySub</span>
+                                    <span style={{ fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em' }}>SubSync</span>
                                 </div>
                                 <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '3px' }}>
                                     {['calendar', 'list'].map(v => (
