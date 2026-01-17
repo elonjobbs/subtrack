@@ -35,8 +35,6 @@ const KNOWN_SUBSCRIPTIONS: Record<string, { name: string; category: string; icon
   'anthropic': { name: 'Claude Pro', category: 'AI', icon: '🧠', cancelUrl: 'https://claude.ai/settings' },
   'gym': { name: 'Gym Membership', category: 'Fitness', icon: '💪', cancelUrl: null },
   'planet fitness': { name: 'Planet Fitness', category: 'Fitness', icon: '💪', cancelUrl: 'https://www.planetfitness.com/my-account' },
-  'la fitness': { name: 'LA Fitness', category: 'Fitness', icon: '💪', cancelUrl: null },
-  'equinox': { name: 'Equinox', category: 'Fitness', icon: '💪', cancelUrl: null },
   'peloton': { name: 'Peloton', category: 'Fitness', icon: '🚴', cancelUrl: 'https://members.onepeloton.com/preferences/subscriptions' },
   'headspace': { name: 'Headspace', category: 'Wellness', icon: '🧘', cancelUrl: 'https://www.headspace.com/settings/subscription' },
   'calm': { name: 'Calm', category: 'Wellness', icon: '🧘', cancelUrl: 'https://www.calm.com/account' },
@@ -44,9 +42,7 @@ const KNOWN_SUBSCRIPTIONS: Record<string, { name: string; category: string; icon
   'nordvpn': { name: 'NordVPN', category: 'Security', icon: '🔒', cancelUrl: 'https://my.nordaccount.com/dashboard/nordvpn/' },
   'expressvpn': { name: 'ExpressVPN', category: 'Security', icon: '🔒', cancelUrl: 'https://www.expressvpn.com/subscriptions' },
   '1password': { name: '1Password', category: 'Security', icon: '🔑', cancelUrl: 'https://my.1password.com/profile' },
-  'lastpass': { name: 'LastPass', category: 'Security', icon: '🔑', cancelUrl: 'https://lastpass.com/account.php' },
   'notion': { name: 'Notion', category: 'Productivity', icon: '📝', cancelUrl: 'https://www.notion.so/my-account' },
-  'evernote': { name: 'Evernote', category: 'Productivity', icon: '📝', cancelUrl: 'https://www.evernote.com/Settings.action' },
   'canva': { name: 'Canva Pro', category: 'Design', icon: '🎨', cancelUrl: 'https://www.canva.com/settings/billing-and-plans' },
   'figma': { name: 'Figma', category: 'Design', icon: '🎨', cancelUrl: 'https://www.figma.com/settings' },
   'grammarly': { name: 'Grammarly', category: 'Writing', icon: '✍️', cancelUrl: 'https://account.grammarly.com/subscription' },
@@ -57,18 +53,10 @@ const KNOWN_SUBSCRIPTIONS: Record<string, { name: string; category: string; icon
   'kindle': { name: 'Kindle Unlimited', category: 'Books', icon: '📚', cancelUrl: 'https://www.amazon.com/kindle-dbs/hz/subscribe/ku' },
   'doordash': { name: 'DashPass', category: 'Food', icon: '🍔', cancelUrl: 'https://www.doordash.com/consumer/membership/' },
   'uber eats': { name: 'Uber One', category: 'Food', icon: '🚗', cancelUrl: 'https://www.ubereats.com/membership' },
-  'uber one': { name: 'Uber One', category: 'Food', icon: '🚗', cancelUrl: 'https://www.ubereats.com/membership' },
-  'instacart': { name: 'Instacart+', category: 'Food', icon: '🛒', cancelUrl: 'https://www.instacart.com/store/account/manage_subscription' },
   'xbox': { name: 'Xbox Game Pass', category: 'Gaming', icon: '🎮', cancelUrl: 'https://account.microsoft.com/services/xboxgamepass/cancel' },
   'playstation': { name: 'PlayStation Plus', category: 'Gaming', icon: '🎮', cancelUrl: 'https://www.playstation.com/en-us/support/store/cancel-ps-store-subscription/' },
   'nintendo': { name: 'Nintendo Online', category: 'Gaming', icon: '🎮', cancelUrl: 'https://accounts.nintendo.com/shop/subscription' },
-  'twitch': { name: 'Twitch', category: 'Entertainment', icon: '🎮', cancelUrl: 'https://www.twitch.tv/subscriptions' },
   'nytimes': { name: 'NY Times', category: 'News', icon: '📰', cancelUrl: 'https://myaccount.nytimes.com/seg/' },
-  'wsj': { name: 'Wall Street Journal', category: 'News', icon: '📰', cancelUrl: 'https://customercenter.wsj.com/' },
-  'washington post': { name: 'Washington Post', category: 'News', icon: '📰', cancelUrl: 'https://www.washingtonpost.com/my-account/subscriptions/' },
-  'tidal': { name: 'Tidal', category: 'Music', icon: '🎵', cancelUrl: 'https://tidal.com/settings/subscription' },
-  'deezer': { name: 'Deezer', category: 'Music', icon: '🎵', cancelUrl: 'https://www.deezer.com/account/subscription' },
-  'pandora': { name: 'Pandora', category: 'Music', icon: '🎵', cancelUrl: 'https://www.pandora.com/account/settings' },
   'navy federal': { name: 'Navy Federal', category: 'Banking', icon: '🏦', cancelUrl: null },
 };
 
@@ -186,49 +174,70 @@ export default function Home() {
       <>
         <Head>
           <title>StopMySub - Find & Cancel Hidden Subscriptions</title>
-          <meta name="description" content="Instantly detect recurring charges from your bank statements. Cancel forgotten subscriptions and save money." />
+          <meta name="description" content="Upload your bank statements. We find every subscription, show you when they bill, and help you cancel with one click." />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         </Head>
-        <div style={{ minHeight: '100vh', background: '#fff' }}>
+        <div style={{ minHeight: '100vh', background: '#ffffff', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+          {/* Nav */}
           <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 60px', maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#0066ff' }}>stopmysub</div>
-            <button onClick={() => setStep('upload')} style={{ padding: '12px 24px', background: '#0066ff', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: 500, cursor: 'pointer' }}>
-              Get Started
-            </button>
-          </nav>
-          
-          <div style={{ textAlign: 'center', padding: '80px 20px', maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: '#e6f0ff', color: '#0066ff', borderRadius: '20px', fontSize: '14px', fontWeight: 500, marginBottom: '24px' }}>
-              ✨ Save an average of $460/year
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '20px', fontWeight: 600, color: '#111' }}>
+              <div style={{ width: '36px', height: '36px', background: '#0066ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '16px' }}>S</div>
+              StopMySub
             </div>
-            <h1 style={{ fontSize: '56px', fontWeight: 700, lineHeight: 1.1, marginBottom: '24px' }}>
-              Stop paying for<br/><span style={{ color: '#0066ff' }}>forgotten subs.</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+              <span style={{ color: '#666', fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>Features</span>
+              <span style={{ color: '#666', fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>Pricing</span>
+              <button onClick={() => setStep('upload')} style={{ padding: '10px 20px', background: '#0066ff', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>Get Started</button>
+            </div>
+          </nav>
+
+          {/* Hero */}
+          <div style={{ maxWidth: '700px', padding: '80px 60px 60px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: '#e6f4ff', color: '#0066ff', borderRadius: '20px', fontSize: '14px', fontWeight: 500, marginBottom: '24px' }}>
+              <span style={{ width: '8px', height: '8px', background: '#0066ff', borderRadius: '50%' }}></span>
+              Stop overpaying for forgotten subscriptions
+            </div>
+            <h1 style={{ fontSize: '52px', fontWeight: 600, lineHeight: 1.15, marginBottom: '20px', color: '#111', letterSpacing: '-0.02em' }}>
+              Know exactly what you're paying for
             </h1>
-            <p style={{ fontSize: '20px', color: '#536471', marginBottom: '40px' }}>
-              Instantly detect recurring charges from your bank statements.<br/>
-              Identify waste, cancel in one click, and take back control of your money.
+            <p style={{ fontSize: '18px', color: '#666', lineHeight: 1.6, marginBottom: '32px' }}>
+              Upload your bank statements. We find every subscription, show you when they bill, and help you cancel with one click.
             </p>
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button onClick={() => setStep('upload')} style={{ padding: '16px 32px', background: '#0066ff', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '17px', fontWeight: 500, cursor: 'pointer' }}>
-                Scan My Statement →
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
+              <button onClick={() => setStep('upload')} style={{ padding: '14px 28px', background: '#0066ff', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Start Free <span>→</span>
               </button>
-              <button onClick={loadDemo} style={{ padding: '16px 32px', background: '#fff', color: '#0f1419', border: '1px solid #e6e9ed', borderRadius: '12px', fontSize: '17px', fontWeight: 500, cursor: 'pointer' }}>
-                View Demo Dashboard
-              </button>
+              <button onClick={loadDemo} style={{ padding: '14px 28px', background: '#fff', color: '#111', border: '1px solid #e5e5e5', borderRadius: '10px', fontSize: '16px', fontWeight: 500, cursor: 'pointer' }}>View Demo</button>
+            </div>
+            <div style={{ display: 'flex', gap: '20px', color: '#888', fontSize: '14px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
+                100% Private
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+                No account needed
+              </span>
             </div>
           </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', maxWidth: '1000px', margin: '60px auto', padding: '0 20px' }}>
-            {[
-              { icon: '🔒', title: 'Upload Securely', desc: 'Drag & drop your PDF or CSV bank statement. All processing happens locally in your browser.' },
-              { icon: '🔍', title: 'Auto-Detection', desc: 'We scan for 50+ known services like Netflix, Spotify, Adobe, and gym memberships.' },
-              { icon: '❌', title: 'Cancel & Save', desc: 'See your monthly spend and get direct links to each service\'s cancellation page.' },
-            ].map((f, i) => (
-              <div key={i} style={{ background: '#fff', border: '1px solid #e6e9ed', borderRadius: '16px', padding: '32px' }}>
-                <div style={{ fontSize: '32px', marginBottom: '16px' }}>{f.icon}</div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>{f.title}</h3>
-                <p style={{ color: '#536471', fontSize: '16px' }}>{f.desc}</p>
-              </div>
-            ))}
+
+          {/* Features */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', maxWidth: '1100px', margin: '40px auto 80px', padding: '0 60px' }}>
+            <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '16px', padding: '28px' }}>
+              <div style={{ fontSize: '28px', marginBottom: '16px', filter: 'grayscale(1)', opacity: 0.7 }}>📄</div>
+              <div style={{ fontSize: '17px', fontWeight: 600, marginBottom: '8px', color: '#111' }}>Upload Statements</div>
+              <div style={{ fontSize: '15px', color: '#666', lineHeight: 1.5 }}>Drop your bank or credit card PDFs</div>
+            </div>
+            <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '16px', padding: '28px' }}>
+              <div style={{ fontSize: '28px', marginBottom: '16px', filter: 'grayscale(1)', opacity: 0.7 }}>🔍</div>
+              <div style={{ fontSize: '17px', fontWeight: 600, marginBottom: '8px', color: '#111' }}>Auto-Detect</div>
+              <div style={{ fontSize: '15px', color: '#666', lineHeight: 1.5 }}>AI finds all recurring charges</div>
+            </div>
+            <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '16px', padding: '28px' }}>
+              <div style={{ fontSize: '28px', marginBottom: '16px', filter: 'grayscale(1)', opacity: 0.7 }}>📅</div>
+              <div style={{ fontSize: '17px', fontWeight: 600, marginBottom: '8px', color: '#111' }}>Visual Calendar</div>
+              <div style={{ fontSize: '15px', color: '#666', lineHeight: 1.5 }}>See exactly when you're billed</div>
+            </div>
           </div>
         </div>
       </>
@@ -240,20 +249,20 @@ export default function Home() {
     return (
       <>
         <Head><title>Upload Statement - StopMySub</title></Head>
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', background: '#f8f9fb' }}>
-          <button onClick={() => setStep('landing')} style={{ position: 'absolute', top: '24px', left: '24px', background: 'none', border: 'none', fontSize: '16px', color: '#536471', cursor: 'pointer' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', background: '#fafafa', fontFamily: "'Inter', sans-serif" }}>
+          <button onClick={() => setStep('landing')} style={{ position: 'absolute', top: '24px', left: '24px', background: 'none', border: 'none', fontSize: '16px', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
             ← Back
           </button>
           
-          <div style={{ background: '#fff', borderRadius: '24px', padding: '48px', maxWidth: '500px', width: '100%', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
-            <h1 style={{ fontSize: '28px', marginBottom: '8px' }}>Upload Your Statement</h1>
-            <p style={{ color: '#536471', marginBottom: '32px' }}>Drop your bank statement (PDF or CSV) to find subscriptions</p>
+          <div style={{ background: '#fff', borderRadius: '20px', padding: '48px', maxWidth: '480px', width: '100%', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #f0f0f0' }}>
+            <h1 style={{ fontSize: '26px', fontWeight: 600, marginBottom: '8px', color: '#111' }}>Upload Your Statement</h1>
+            <p style={{ color: '#666', marginBottom: '32px', fontSize: '15px' }}>Drop your bank statement (PDF or CSV) to find subscriptions</p>
             
             {loading ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
-                <div style={{ width: '40px', height: '40px', border: '3px solid #e6e9ed', borderTopColor: '#0066ff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+                <div style={{ width: '40px', height: '40px', border: '3px solid #f0f0f0', borderTopColor: '#0066ff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                <p>Analyzing your statement...</p>
+                <p style={{ color: '#666' }}>Analyzing your statement...</p>
               </div>
             ) : (
               <>
@@ -263,22 +272,22 @@ export default function Home() {
                   onDrop={handleDrop}
                   onClick={() => document.getElementById('fileInput')?.click()}
                   style={{
-                    border: `2px dashed ${dragActive ? '#0066ff' : '#e6e9ed'}`,
-                    background: dragActive ? '#e6f0ff' : '#fff',
+                    border: `2px dashed ${dragActive ? '#0066ff' : '#e5e5e5'}`,
+                    background: dragActive ? '#f0f7ff' : '#fafafa',
                     borderRadius: '16px', padding: '48px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
-                  <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>Drop your bank statement here</h3>
-                  <span style={{ color: '#536471', fontSize: '14px' }}>PDF or CSV from any bank</span>
+                  <div style={{ fontSize: '40px', marginBottom: '16px', opacity: 0.5 }}>📄</div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 500, marginBottom: '8px', color: '#111' }}>Drop your bank statement here</h3>
+                  <span style={{ color: '#888', fontSize: '14px' }}>PDF or CSV from any bank</span>
                   <input type="file" id="fileInput" accept=".pdf,.csv,.txt" onChange={handleFileChange} style={{ display: 'none' }} />
                 </div>
                 
-                {error && <div style={{ background: '#ffefef', color: '#e5484d', padding: '12px 16px', borderRadius: '8px', marginTop: '16px' }}>{error}</div>}
+                {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '10px', marginTop: '16px', fontSize: '14px' }}>{error}</div>}
                 
-                <div style={{ textAlign: 'center', color: '#8b98a5', margin: '24px 0' }}>or</div>
+                <div style={{ textAlign: 'center', color: '#ccc', margin: '24px 0', fontSize: '14px' }}>or</div>
                 
-                <button onClick={loadDemo} style={{ width: '100%', padding: '16px 32px', background: '#f8f9fb', color: '#0f1419', border: 'none', borderRadius: '12px', fontSize: '17px', fontWeight: 500, cursor: 'pointer' }}>
+                <button onClick={loadDemo} style={{ width: '100%', padding: '14px', background: '#fafafa', color: '#111', border: '1px solid #e5e5e5', borderRadius: '10px', fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>
                   Try with Demo Data
                 </button>
               </>
@@ -294,29 +303,29 @@ export default function Home() {
     return (
       <>
         <Head><title>Review Subscriptions - StopMySub</title></Head>
-        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '40px 20px' }}>
-          <h1 style={{ fontSize: '28px', marginBottom: '8px' }}>We found {subscriptions.length} subscriptions</h1>
-          <p style={{ color: '#536471', marginBottom: '32px' }}>Review and confirm the subscriptions we detected</p>
+        <div style={{ maxWidth: '640px', margin: '0 auto', padding: '40px 20px', fontFamily: "'Inter', sans-serif" }}>
+          <h1 style={{ fontSize: '26px', fontWeight: 600, marginBottom: '8px', color: '#111' }}>We found {subscriptions.length} subscriptions</h1>
+          <p style={{ color: '#666', marginBottom: '32px', fontSize: '15px' }}>Review and confirm the subscriptions we detected</p>
           
           {subscriptions.map(sub => (
-            <div key={sub.id} style={{ background: '#fff', borderRadius: '16px', padding: '20px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e6e9ed' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span style={{ fontSize: '32px' }}>{sub.icon}</span>
+            <div key={sub.id} style={{ background: '#fff', borderRadius: '14px', padding: '18px 20px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <span style={{ fontSize: '28px' }}>{sub.icon}</span>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '17px' }}>{sub.merchant}</div>
-                  <div style={{ color: '#536471', fontSize: '14px' }}>{sub.category}</div>
+                  <div style={{ fontWeight: 500, fontSize: '16px', color: '#111' }}>{sub.merchant}</div>
+                  <div style={{ color: '#888', fontSize: '13px' }}>{sub.category}</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span style={{ fontWeight: 600, fontSize: '18px' }}>${sub.amount.toFixed(2)}/mo</span>
-                <button onClick={() => removeSubscription(sub.id)} style={{ background: 'none', border: 'none', color: '#e5484d', cursor: 'pointer', fontSize: '20px', padding: '8px' }}>×</button>
+                <span style={{ fontWeight: 600, fontSize: '16px', fontFamily: "'SF Mono', monospace" }}>${sub.amount.toFixed(2)}/mo</span>
+                <button onClick={() => removeSubscription(sub.id)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: '20px', padding: '4px 8px' }}>×</button>
               </div>
             </div>
           ))}
           
-          <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
-            <button onClick={() => setStep('upload')} style={{ flex: 1, padding: '16px 32px', background: '#fff', color: '#0f1419', border: '1px solid #e6e9ed', borderRadius: '12px', fontSize: '17px', fontWeight: 500, cursor: 'pointer' }}>Back</button>
-            <button onClick={() => setStep('dashboard')} style={{ flex: 1, padding: '16px 32px', background: '#0066ff', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '17px', fontWeight: 500, cursor: 'pointer' }}>Continue to Dashboard →</button>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+            <button onClick={() => setStep('upload')} style={{ flex: 1, padding: '14px', background: '#fff', color: '#111', border: '1px solid #e5e5e5', borderRadius: '10px', fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>Back</button>
+            <button onClick={() => setStep('dashboard')} style={{ flex: 1, padding: '14px', background: '#0066ff', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>Continue to Dashboard →</button>
           </div>
         </div>
       </>
@@ -327,45 +336,48 @@ export default function Home() {
   return (
     <>
       <Head><title>Dashboard - StopMySub</title></Head>
-      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 20px' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 20px', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: '#0066ff' }}>stopmysub</div>
-          <div style={{ display: 'flex', background: '#fff', borderRadius: '12px', padding: '4px', border: '1px solid #e6e9ed' }}>
-            <button onClick={() => setViewMode('calendar')} style={{ padding: '10px 20px', border: 'none', background: viewMode === 'calendar' ? '#0066ff' : 'none', color: viewMode === 'calendar' ? '#fff' : '#536471', borderRadius: '8px', fontWeight: 500, cursor: 'pointer' }}>📅 Calendar</button>
-            <button onClick={() => setViewMode('list')} style={{ padding: '10px 20px', border: 'none', background: viewMode === 'list' ? '#0066ff' : 'none', color: viewMode === 'list' ? '#fff' : '#536471', borderRadius: '8px', fontWeight: 500, cursor: 'pointer' }}>📋 List</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '20px', fontWeight: 600, color: '#111' }}>
+            <div style={{ width: '32px', height: '32px', background: '#0066ff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '14px' }}>S</div>
+            StopMySub
+          </div>
+          <div style={{ display: 'flex', background: '#f5f5f5', borderRadius: '10px', padding: '4px' }}>
+            <button onClick={() => setViewMode('calendar')} style={{ padding: '8px 16px', border: 'none', background: viewMode === 'calendar' ? '#fff' : 'transparent', color: viewMode === 'calendar' ? '#111' : '#666', borderRadius: '8px', fontWeight: 500, cursor: 'pointer', fontSize: '14px', boxShadow: viewMode === 'calendar' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>📅 Calendar</button>
+            <button onClick={() => setViewMode('list')} style={{ padding: '8px 16px', border: 'none', background: viewMode === 'list' ? '#fff' : 'transparent', color: viewMode === 'list' ? '#111' : '#666', borderRadius: '8px', fontWeight: 500, cursor: 'pointer', fontSize: '14px', boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>📋 List</button>
           </div>
         </div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #e6e9ed' }}>
-            <div style={{ color: '#536471', fontSize: '14px', marginBottom: '8px' }}>Active Subscriptions</div>
-            <div style={{ fontSize: '32px', fontWeight: 700 }}>{subscriptions.length}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
+          <div style={{ background: '#fff', borderRadius: '14px', padding: '24px', border: '1px solid #f0f0f0' }}>
+            <div style={{ color: '#888', fontSize: '13px', marginBottom: '8px', fontWeight: 500 }}>Active Subscriptions</div>
+            <div style={{ fontSize: '32px', fontWeight: 600, color: '#111' }}>{subscriptions.length}</div>
           </div>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #e6e9ed' }}>
-            <div style={{ color: '#536471', fontSize: '14px', marginBottom: '8px' }}>Monthly Spend</div>
-            <div className="mono" style={{ fontSize: '32px', fontWeight: 700, color: '#e5484d' }}>${totalMonthly.toFixed(2)}</div>
+          <div style={{ background: '#fff', borderRadius: '14px', padding: '24px', border: '1px solid #f0f0f0' }}>
+            <div style={{ color: '#888', fontSize: '13px', marginBottom: '8px', fontWeight: 500 }}>Monthly Spend</div>
+            <div style={{ fontSize: '32px', fontWeight: 600, color: '#ef4444', fontFamily: "'SF Mono', monospace" }}>${totalMonthly.toFixed(2)}</div>
           </div>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #e6e9ed' }}>
-            <div style={{ color: '#536471', fontSize: '14px', marginBottom: '8px' }}>Yearly Total</div>
-            <div className="mono" style={{ fontSize: '32px', fontWeight: 700 }}>${totalYearly.toFixed(2)}</div>
+          <div style={{ background: '#fff', borderRadius: '14px', padding: '24px', border: '1px solid #f0f0f0' }}>
+            <div style={{ color: '#888', fontSize: '13px', marginBottom: '8px', fontWeight: 500 }}>Yearly Total</div>
+            <div style={{ fontSize: '32px', fontWeight: 600, color: '#111', fontFamily: "'SF Mono', monospace" }}>${totalYearly.toFixed(2)}</div>
           </div>
         </div>
         
         {viewMode === 'calendar' && (
           <>
-            <h2 style={{ fontSize: '20px', fontWeight: 600, margin: '32px 0 16px' }}>Billing Calendar</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #e6e9ed' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, margin: '32px 0 16px', color: '#111' }}>Billing Calendar</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #f0f0f0' }}>
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} style={{ fontWeight: 600, textAlign: 'center', padding: '8px', color: '#536471', fontSize: '14px' }}>{day}</div>
+                <div key={day} style={{ fontWeight: 500, textAlign: 'center', padding: '8px', color: '#888', fontSize: '13px' }}>{day}</div>
               ))}
               {Array.from({ length: 35 }, (_, i) => {
                 const dayNum = i < 3 ? null : i - 2;
                 if (dayNum === null || dayNum > 31) return <div key={i} style={{ aspectRatio: '1' }}></div>;
                 const daySubs = subscriptions.filter(s => s.billingDay === dayNum);
                 return (
-                  <div key={i} style={{ aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', fontSize: '14px', background: daySubs.length > 0 ? '#e6f0ff' : 'transparent' }}>
-                    <span style={{ fontWeight: 500 }}>{dayNum}</span>
-                    {daySubs.length > 0 && <span style={{ fontSize: '18px', marginTop: '4px' }}>{daySubs.map(s => s.icon).join('')}</span>}
+                  <div key={i} style={{ aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', fontSize: '14px', background: daySubs.length > 0 ? '#f0f7ff' : 'transparent', border: daySubs.length > 0 ? '1px solid #e0efff' : '1px solid transparent' }}>
+                    <span style={{ fontWeight: 500, color: '#111' }}>{dayNum}</span>
+                    {daySubs.length > 0 && <span style={{ fontSize: '16px', marginTop: '2px' }}>{daySubs.map(s => s.icon).join('')}</span>}
                   </div>
                 );
               })}
@@ -373,25 +385,25 @@ export default function Home() {
           </>
         )}
         
-        <h2 style={{ fontSize: '20px', fontWeight: 600, margin: '32px 0 16px' }}>Your Subscriptions</h2>
-        <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e6e9ed', overflow: 'hidden' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 600, margin: '32px 0 16px', color: '#111' }}>Your Subscriptions</h2>
+        <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f0f0f0', overflow: 'hidden' }}>
           {subscriptions.map((sub, i) => (
-            <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: i < subscriptions.length - 1 ? '1px solid #e6e9ed' : 'none' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span style={{ fontSize: '32px' }}>{sub.icon}</span>
+            <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: i < subscriptions.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <span style={{ fontSize: '28px' }}>{sub.icon}</span>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '17px' }}>{sub.merchant}</div>
-                  <div style={{ color: '#536471', fontSize: '14px' }}>{sub.category} • Bills on the {sub.billingDay}{sub.billingDay === 1 ? 'st' : sub.billingDay === 2 ? 'nd' : sub.billingDay === 3 ? 'rd' : 'th'}</div>
+                  <div style={{ fontWeight: 500, fontSize: '16px', color: '#111' }}>{sub.merchant}</div>
+                  <div style={{ color: '#888', fontSize: '13px' }}>{sub.category} · Bills on the {sub.billingDay}{sub.billingDay === 1 ? 'st' : sub.billingDay === 2 ? 'nd' : sub.billingDay === 3 ? 'rd' : 'th'}</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span className="mono" style={{ fontWeight: 600, fontSize: '18px' }}>${sub.amount.toFixed(2)}/mo</span>
+                <span style={{ fontWeight: 600, fontSize: '16px', fontFamily: "'SF Mono', monospace" }}>${sub.amount.toFixed(2)}/mo</span>
                 {sub.cancelUrl ? (
                   <a href={sub.cancelUrl} target="_blank" rel="noopener noreferrer">
-                    <button style={{ background: '#ffefef', color: '#e5484d', border: 'none', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '14px' }}>Cancel →</button>
+                    <button style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '13px' }}>Cancel →</button>
                   </a>
                 ) : (
-                  <button onClick={() => removeSubscription(sub.id)} style={{ background: '#ffefef', color: '#e5484d', border: 'none', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '14px' }}>Remove</button>
+                  <button onClick={() => removeSubscription(sub.id)} style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '13px' }}>Remove</button>
                 )}
               </div>
             </div>
