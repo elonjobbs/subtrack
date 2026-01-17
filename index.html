@@ -77,22 +77,41 @@
             .stats-container { flex-direction: column !important; gap: 20px !important; }
             .section-padding { padding: 60px 24px !important; }
             
-            /* DASHBOARD HEADER FIX */
+            /* CONFIRMATION PAGE - Fix monthly/yearly spacing */
+            .confirm-stats-box {
+                flex-direction: column !important;
+                gap: 16px !important;
+            }
+            .confirm-stats-box > div:first-child {
+                padding-bottom: 16px !important;
+                border-bottom: 1px solid var(--border) !important;
+            }
+            .confirm-stats-box .stats-divider {
+                display: none !important;
+            }
+            
+            /* DASHBOARD HEADER FIX - Complete restructure */
             .dashboard-header {
                 padding: 12px 16px !important;
             }
             .dashboard-header-inner {
                 flex-direction: column !important;
-                gap: 12px !important;
+                gap: 0 !important;
             }
             .dashboard-header-left {
                 width: 100% !important;
-                flex-direction: row !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+            }
+            .dashboard-logo-row {
+                display: flex !important;
                 justify-content: space-between !important;
                 align-items: center !important;
+                width: 100% !important;
             }
             .dashboard-view-toggle {
-                order: 2 !important;
+                order: 0 !important;
             }
             .dashboard-header-right {
                 display: none !important;
@@ -100,9 +119,14 @@
             .dashboard-mobile-stats {
                 display: flex !important;
                 width: 100% !important;
-                justify-content: space-between !important;
-                padding: 12px 0 0 !important;
+                justify-content: space-around !important;
+                padding: 12px 0 !important;
+                margin-top: 12px !important;
                 border-top: 1px solid var(--border-light) !important;
+                gap: 24px !important;
+            }
+            .dashboard-mobile-stats > div {
+                text-align: center !important;
             }
             .dashboard-content {
                 padding: 20px 16px !important;
@@ -721,12 +745,12 @@
                             </div>
                         </div>
                         
-                        <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '12px', padding: '28px', marginBottom: '24px', display: 'flex', justifyContent: 'space-around' }}>
+                        <div className="confirm-stats-box" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '12px', padding: '28px', marginBottom: '24px', display: 'flex', justifyContent: 'space-around' }}>
                             <div style={{ textAlign: 'center' }}>
                                 <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monthly</p>
                                 <p className="mono" style={{ fontSize: '32px', fontWeight: 600 }}>${confirmed.reduce((sum, s) => sum + s.price, 0).toFixed(2)}</p>
                             </div>
-                            <div style={{ width: '1px', background: 'var(--border)' }} />
+                            <div className="stats-divider" style={{ width: '1px', background: 'var(--border)' }} />
                             <div style={{ textAlign: 'center' }}>
                                 <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Yearly</p>
                                 <p className="mono" style={{ fontSize: '32px', fontWeight: 600, color: 'var(--accent)' }}>${(confirmed.reduce((sum, s) => sum + s.price, 0) * 12).toFixed(2)}</p>
@@ -786,29 +810,32 @@
                     <div className="dashboard-header" style={{ background: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', padding: '16px 48px' }}>
                         <div className="dashboard-header-inner" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div className="dashboard-header-left" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: 600 }}>S</div>
-                                    <span style={{ fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em' }}>StopMySub</span>
-                                </div>
-                                <div className="dashboard-view-toggle" style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '3px' }}>
-                                    {['calendar', 'list'].map(v => (
-                                        <button key={v} onClick={() => setView(v)} style={{
-                                            background: view === v ? 'var(--bg-primary)' : 'transparent',
-                                            border: view === v ? '1px solid var(--border)' : '1px solid transparent',
-                                            color: view === v ? 'var(--text-primary)' : 'var(--text-muted)',
-                                            padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, textTransform: 'capitalize'
-                                        }}>{v}</button>
-                                    ))}
+                                {/* Logo + Toggle row */}
+                                <div className="dashboard-logo-row" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: 600 }}>S</div>
+                                        <span style={{ fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em' }}>StopMySub</span>
+                                    </div>
+                                    <div className="dashboard-view-toggle" style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '3px' }}>
+                                        {['calendar', 'list'].map(v => (
+                                            <button key={v} onClick={() => setView(v)} style={{
+                                                background: view === v ? 'var(--bg-primary)' : 'transparent',
+                                                border: view === v ? '1px solid var(--border)' : '1px solid transparent',
+                                                color: view === v ? 'var(--text-primary)' : 'var(--text-muted)',
+                                                padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, textTransform: 'capitalize'
+                                            }}>{v}</button>
+                                        ))}
+                                    </div>
                                 </div>
                                 {/* Mobile stats - shows on mobile only */}
                                 <div className="dashboard-mobile-stats">
                                     <div>
                                         <p style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monthly</p>
-                                        <p className="mono" style={{ fontWeight: 600, fontSize: '16px' }}>${monthlyTotal.toFixed(2)}</p>
+                                        <p className="mono" style={{ fontWeight: 600, fontSize: '18px' }}>${monthlyTotal.toFixed(2)}</p>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
+                                    <div>
                                         <p style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Yearly</p>
-                                        <p className="mono" style={{ fontWeight: 600, fontSize: '16px', color: 'var(--accent)' }}>${(monthlyTotal * 12).toFixed(2)}</p>
+                                        <p className="mono" style={{ fontWeight: 600, fontSize: '18px', color: 'var(--accent)' }}>${(monthlyTotal * 12).toFixed(2)}</p>
                                     </div>
                                 </div>
                             </div>
